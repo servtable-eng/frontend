@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.serv-theme {
+  font-family: 'Inter', sans-serif;
+  --serv-primary: #C9623A;
+  --serv-background: #F8F6F4;
+  --serv-surface: #FFFFFF;
+  --serv-border: #EAE4DF;
+  --serv-success: #22C55E;
+  --serv-warning: #F59E0B;
+  --serv-danger: #EF4444;
+  --serv-text-primary: #1F2937;
+  --serv-text-secondary: #6B7280;
+}
+
+.serv-bg-background { background-color: var(--serv-background); }
+.serv-bg-surface { background-color: var(--serv-surface); }
+.serv-bg-primary { background-color: var(--serv-primary); }
+.serv-text-primary { color: var(--serv-text-primary); }
+.serv-text-secondary { color: var(--serv-text-secondary); }
+.serv-text-primary-brand { color: var(--serv-primary); }
+.serv-border { border-color: var(--serv-border); }
+.serv-text-success { color: var(--serv-success); }
+.serv-text-warning { color: var(--serv-warning); }
+.serv-text-danger { color: var(--serv-danger); }
+.serv-bg-success { background-color: var(--serv-success); }
+.serv-bg-warning { background-color: var(--serv-warning); }
+.serv-bg-danger { background-color: var(--serv-danger); }

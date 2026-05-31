@@ -1,0 +1,60 @@
+﻿
+> servtable@0.0.0 build
+> tsc -b && vite build
+
+src/components/mockups/serv-table/CadastroPrato.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/mockups/serv-table/CadastroPratoForm.tsx(6,33): error TS2440: Import declaration conflicts with local declaration of 'Textarea'.
+src/components/mockups/serv-table/CadastroPratoForm.tsx(245,23): error TS2322: Type '{ placeholder: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement, Element>) => void; error: string | undefined; }' is not assignable to type 'IntrinsicAttributes & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref"> & RefAttributes<...>'.
+  Property 'error' does not exist on type 'IntrinsicAttributes & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref"> & RefAttributes<...>'. Did you mean 'onError'?
+src/components/mockups/serv-table/CadastroPratoForm.tsx(315,25): error TS2322: Type '{ placeholder: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement, Element>) => void; error: string | undefined; }' is not assignable to type 'IntrinsicAttributes & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref"> & RefAttributes<...>'.
+  Property 'error' does not exist on type 'IntrinsicAttributes & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref"> & RefAttributes<...>'. Did you mean 'onError'?
+src/components/mockups/serv-table/CadastroPratoForm.tsx(423,41): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/components/mockups/serv-table/CadastroPratoForm.tsx(424,21): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/components/mockups/serv-table/CadastroPratoForm.tsx(424,41): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/components/mockups/serv-table/Dashboard.tsx(1,79): error TS6133: 'ArrowUpRight' is declared but its value is never read.
+src/components/mockups/serv-table/DishDetails.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/mockups/serv-table/GerenciamentoCardapio.tsx(170,21): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/components/mockups/serv-table/GerenciamentoCardapio.tsx(170,39): error TS2322: Type '"md"' is not assignable to type '"default" | "sm" | "lg" | "icon" | null | undefined'.
+src/components/mockups/serv-table/GerenciamentoCardapio.tsx(192,22): error TS2322: Type '"success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+src/components/mockups/serv-table/GerenciamentoCardapio.tsx(193,42): error TS2322: Type '{ children: (string | number)[]; variant: "secondary"; dot: true; }' is not assignable to type 'IntrinsicAttributes & BadgeProps'.
+  Property 'dot' does not exist on type 'IntrinsicAttributes & BadgeProps'.
+src/components/mockups/serv-table/GestaoImagensBuffet.tsx(102,35): error TS2322: Type '"warning"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+src/components/mockups/serv-table/GestaoImagensBuffet.tsx(173,23): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/components/mockups/serv-table/GestaoImagensBuffet.tsx(299,26): error TS2322: Type '"warning"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+src/components/mockups/serv-table/OrganizacaoBuffet.tsx(97,33): error TS6133: 'gIdx' is declared but its value is never read.
+src/components/mockups/serv-table/OrganizacaoBuffetDnD.tsx(187,21): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/components/mockups/serv-table/OrganizacaoBuffetDnD.tsx(343,23): error TS2322: Type '"secondary" | "success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+  Type '"success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+src/components/ui/accordion.tsx(2,37): error TS2307: Cannot find module '@radix-ui/react-accordion' or its corresponding type declarations.
+src/components/ui/alert-dialog.tsx(2,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog' or its corresponding type declarations.
+src/components/ui/aspect-ratio.tsx(1,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio' or its corresponding type declarations.
+src/components/ui/avatar.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-avatar' or its corresponding type declarations.
+src/components/ui/calendar.tsx(87,9): error TS2353: Object literal may only specify known properties, and 'table' does not exist in type 'Partial<ClassNames>'.
+src/components/ui/carousel.tsx(4,8): error TS2307: Cannot find module 'embla-carousel-react' or its corresponding type declarations.
+src/components/ui/chart.tsx(2,36): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+src/components/ui/chart.tsx(186,22): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/ui/chart.tsx(187,19): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/ui/chart.tsx(187,25): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/components/ui/chart.tsx(288,20): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/ui/chart.tsx(289,17): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/ui/collapsible.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-collapsible' or its corresponding type declarations.
+src/components/ui/command.tsx(5,45): error TS2307: Cannot find module 'cmdk' or its corresponding type declarations.
+src/components/ui/context-menu.tsx(2,39): error TS2307: Cannot find module '@radix-ui/react-context-menu' or its corresponding type declarations.
+src/components/ui/drawer.tsx(2,43): error TS2307: Cannot find module 'vaul' or its corresponding type declarations.
+src/components/ui/hover-card.tsx(2,37): error TS2307: Cannot find module '@radix-ui/react-hover-card' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(2,43): error TS2307: Cannot find module 'input-otp' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(36,44): error TS18046: 'inputOTPContext' is of type 'unknown'.
+src/components/ui/menubar.tsx(2,35): error TS2307: Cannot find module '@radix-ui/react-menubar' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu' or its corresponding type declarations.
+src/components/ui/pagination.tsx(5,10): error TS1484: 'ButtonProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ui/progress.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-progress' or its corresponding type declarations.
+src/components/ui/radio-group.tsx(2,38): error TS2307: Cannot find module '@radix-ui/react-radio-group' or its corresponding type declarations.
+src/components/ui/resizable.tsx(4,37): error TS2307: Cannot find module 'react-resizable-panels' or its corresponding type declarations.
+src/components/ui/scroll-area.tsx(2,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area' or its corresponding type declarations.
+src/components/ui/separator.tsx(2,37): error TS2307: Cannot find module '@radix-ui/react-separator' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(5,15): error TS1484: 'VariantProps' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/ui/slider.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-slider' or its corresponding type declarations.
+src/components/ui/sonner.tsx(3,26): error TS2307: Cannot find module 'next-themes' or its corresponding type declarations.
+src/components/ui/switch.tsx(2,35): error TS2307: Cannot find module '@radix-ui/react-switch' or its corresponding type declarations.
+src/components/ui/toggle-group.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group' or its corresponding type declarations.
+src/components/ui/toggle.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-toggle' or its corresponding type declarations.
