@@ -12,7 +12,7 @@ type DetailDish = {
   category: string;
   image: string;
   available: boolean;
-  photoDate: string;
+  photoUpdatedAtLabel: string | null;
   desc: string;
   ingredients: string[];
 };
@@ -23,12 +23,30 @@ const EMPTY_DISH: DetailDish = {
   category: '-',
   image: '',
   available: false,
-  photoDate: '-',
+  photoUpdatedAtLabel: null,
   desc: 'Nao foi possivel carregar este prato.',
   ingredients: ['Ingredientes nao disponiveis'],
 };
 
 const font = 'Inter, system-ui, sans-serif';
+
+function formatPhotoUpdatedAt(value?: string | null) {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  const isValidDate = (
+    date.getFullYear() === Number(year)
+    && date.getMonth() === Number(month) - 1
+    && date.getDate() === Number(day)
+  );
+
+  if (!isValidDate) return null;
+
+  return `${day}/${month}/${year}`;
+}
 
 export function DishDetails() {
   const { id } = useParams();
@@ -48,7 +66,7 @@ export function DishDetails() {
           category: data.category.replaceAll('_', ' '),
           image: data.imageUrl,
           available: data.available,
-          photoDate: 'hoje',
+          photoUpdatedAtLabel: formatPhotoUpdatedAt(data.photoUpdatedAt),
           desc: data.description,
           ingredients: data.ingredients.length > 0 ? data.ingredients : ['Ingredientes nao disponiveis'],
         });
@@ -112,6 +130,30 @@ export function DishDetails() {
         >
           <ChevronLeft size={22} color="#1F2937" />
         </button>
+
+        {dish.photoUpdatedAtLabel && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              maxWidth: 190,
+              padding: '7px 11px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.88)',
+              color: '#374151',
+              fontSize: 11,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.14)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Atualizada em {dish.photoUpdatedAtLabel}
+          </div>
+        )}
       </div>
 
       <div style={{
@@ -173,10 +215,12 @@ export function DishDetails() {
             </div>
           </section>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9CA3AF' }}>
-            <Camera size={13} />
-            <span style={{ fontSize: 12 }}>Foto atualizada em {dish.photoDate}</span>
-          </div>
+          {dish.photoUpdatedAtLabel && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9CA3AF' }}>
+              <Camera size={13} />
+              <span style={{ fontSize: 12 }}>Foto atualizada em {dish.photoUpdatedAtLabel}</span>
+            </div>
+          )}
         </div>
       </div>
 

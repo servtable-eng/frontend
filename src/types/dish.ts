@@ -34,6 +34,7 @@ export type DishDto = {
   ingredients: string[];
   category: DishCategory;
   imageUrl: string;
+  photoUpdatedAt?: string | null;
   costPerKg: number;
   buffetPosition: number;
   available: boolean;

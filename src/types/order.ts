@@ -17,7 +17,8 @@ export type PlateReviewState = {
 export type CreateOrderPayload = {
   restaurantId: string;
   customerName: string;
-  tableNumber: string;
+  tableNumber: number;
+  customerPhone: string;
   plateItems: {
     dishId: string;
     portionSize: PortionSize;
@@ -27,6 +28,47 @@ export type CreateOrderPayload = {
     extraItemId: string;
     quantity: number;
   }[];
+};
+
+export type OrderStatus = 'PENDING' | 'RECEIVED' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELED';
+
+export type OrderPlateItem = {
+  id?: string;
+  dishId: string;
+  dishName: string;
+  portionSize: PortionSize;
+  observation: string;
+  unitPrice?: number;
+  subtotal?: number;
+};
+
+export type OrderExtraItem = {
+  extraItemId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type OrderSummary = {
+  id: string;
+  restaurantId: string;
+  customerName: string;
+  tableNumber: number;
+  customerPhone: string;
+  status: OrderStatus;
+  total: number;
+  createdAt: string;
+  plateItemsCount?: number;
+  extraItemsCount?: number;
+  hasObservations?: boolean;
+};
+
+export type OrderDetails = OrderSummary & {
+  plateItems: OrderPlateItem[];
+  extraItems: OrderExtraItem[];
+  buffetSubtotal?: number;
+  extrasSubtotal?: number;
 };
 
 export type OrderDto = {
