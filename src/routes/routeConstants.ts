@@ -6,6 +6,8 @@ export const ROUTES = {
   CUSTOMER_PLATE_REVIEW: '/plate-review',
   CUSTOMER_CART: '/cart',
   CUSTOMER_ORDER_CONFIRMATION: '/order-confirmation',
+  CUSTOMER_RECENT_ORDERS: '/orders',
+  CUSTOMER_ORDER_TRACKING: '/orders/:orderId',
   ADMIN_ROOT: '/admin',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_CARDAPIO: '/admin/cardapio',
@@ -17,4 +19,8 @@ export const ROUTES = {
 
 export function customerDishPath(id: string) {
   return `/dish/${encodeURIComponent(id)}`;
+}
+
+export function customerOrderPath(orderId: string) {
+  return `/orders/${encodeURIComponent(orderId)}`;
 }

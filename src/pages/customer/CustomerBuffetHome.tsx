@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, UtensilsCrossed, ChevronRight, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { Search, UtensilsCrossed, ChevronRight, Plus, Minus, ShoppingCart, ReceiptText } from 'lucide-react';
 import { customerDishPath, ROUTES } from '../../routes/routeConstants';
 import { useRestaurant } from '../../contexts/RestaurantContext';
 import { getDishesForClient } from '../../services/dishes/dish.service';
@@ -67,6 +67,7 @@ export function CustomerBuffetHome() {
   };
 
   const openCart = () => navigate(ROUTES.CUSTOMER_CART);
+  const openRecentOrders = () => navigate(ROUTES.CUSTOMER_RECENT_ORDERS);
 
   return (
     <div style={{
@@ -81,29 +82,37 @@ export function CustomerBuffetHome() {
 
       <header style={{ background: '#fff', borderBottom: '1px solid #EAE4DF', padding: '14px 16px 12px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: '#C9623A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <UtensilsCrossed size={18} color="#fff" />
             </div>
-            <div>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1F2937', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1F2937', letterSpacing: '-0.01em', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {restaurant.name}
               </p>
-              <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF' }}>Auto-servico · Mesa 7</p>
             </div>
           </div>
-          <button type="button" onClick={openCart} aria-label="Abrir carrinho" style={{ width: 36, height: 36, borderRadius: 10, background: '#F8F6F4', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}>
-            {cartPlates.length > 0 ? (
-              <div style={{ position: 'relative' }}>
-                <ShoppingCart size={18} color="#C9623A" />
-                <span style={{ position: 'absolute', top: -8, right: -8, width: 16, height: 16, borderRadius: '50%', background: '#C9623A', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {cartPlates.length}
-                </span>
-              </div>
-            ) : (
-              <ShoppingCart size={18} color="#9CA3AF" />
-            )}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button type="button" onClick={openCart} aria-label="Carrinho" title="Carrinho" style={{ width: 36, height: 36, borderRadius: 10, background: '#F8F6F4', color: cartPlates.length > 0 ? '#C9623A' : '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}>
+              <span style={{ position: 'relative', display: 'flex' }}>
+                <ShoppingCart size={18} color={cartPlates.length > 0 ? '#C9623A' : '#9CA3AF'} />
+                {cartPlates.length > 0 && (
+                  <span style={{ position: 'absolute', top: -8, right: -8, minWidth: 15, height: 15, padding: '0 3px', borderRadius: 999, background: '#C9623A', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+                    {cartPlates.length}
+                  </span>
+                )}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={openRecentOrders}
+              aria-label="Meus pedidos"
+              title="Meus pedidos"
+              style={{ width: 36, height: 36, borderRadius: 10, background: '#F8F6F4', color: '#C9623A', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}
+            >
+              <ReceiptText size={18} />
+            </button>
+          </div>
         </div>
 
         <div style={{ position: 'relative' }}>

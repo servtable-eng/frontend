@@ -5,9 +5,10 @@ import { showError, showSuccess } from '@/components/ToastProvider';
 import { useCustomerCart } from '@/contexts/CustomerCartContext';
 import { useCustomerPlate } from '@/contexts/CustomerPlateContext';
 import { useRestaurant } from '@/contexts/RestaurantContext';
-import { ROUTES } from '@/routes/routeConstants';
+import { ROUTES, customerOrderPath } from '@/routes/routeConstants';
 import { getExtrasForRestaurant } from '@/services/extras/extra.service';
 import { createOrder } from '@/services/orders/order.service';
+import { addRecentOrder, getRecentOrders } from '@/services/orders/recentOrders.storage';
 import type { ExtraDto } from '@/types/extra';
 import type { PlateReviewState, PortionSize } from '@/types/order';
 import { ExtrasScroller } from '@/components/customer/PlateReviewComponents';
@@ -108,6 +109,7 @@ export function CustomerCartPage() {
   const [isSending, setIsSending] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(() => loadCustomerInfo());
   const [submitMessage, setSubmitMessage] = useState('');
+  const [hasRecentOrders, setHasRecentOrders] = useState(() => getRecentOrders().length > 0);
 
   useEffect(() => {
     if (!restaurant.id) {
@@ -217,7 +219,7 @@ export function CustomerCartPage() {
     };
 
     try {
-      await createOrder({
+      const createdOrder = await createOrder({
         restaurantId: restaurant.id,
         customerName: preparedCustomerData.customerName,
         tableNumber: preparedCustomerData.tableNumber,
@@ -238,9 +240,16 @@ export function CustomerCartPage() {
           })),
       });
 
+      addRecentOrder({
+        orderId: createdOrder.id,
+        customerName: preparedCustomerData.customerName,
+        tableNumber: String(preparedCustomerData.tableNumber),
+        createdAt: new Date().toISOString(),
+      });
+      setHasRecentOrders(true);
       clearCart();
       showSuccess('Pedido enviado com sucesso.');
-      navigate(ROUTES.CUSTOMER_ORDER_CONFIRMATION);
+      navigate(customerOrderPath(createdOrder.id));
     } catch {
       showError('Erro ao enviar pedido.');
     } finally {
@@ -254,7 +263,15 @@ export function CustomerCartPage() {
         title="Carrinho"
         subtitle="Revise seus pedidos"
         onBack={goToBuffet}
-        badge={(
+        badge={hasRecentOrders ? (
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.CUSTOMER_RECENT_ORDERS)}
+            style={{ border: 'none', background: '#FDF5F2', color: '#C9623A', padding: '7px 9px', borderRadius: 8, fontSize: 11, fontWeight: 800, fontFamily: customerFont, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Acompanhar pedidos
+          </button>
+        ) : (
           <span style={{ fontSize: 13, fontWeight: 600, color: '#C9623A', background: '#FDF5F2', padding: '4px 10px', borderRadius: 8 }}>
             {cartPlates.length} {cartPlates.length === 1 ? 'prato' : 'pratos'}
           </span>

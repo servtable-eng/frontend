@@ -59,6 +59,8 @@ export type OrderSummary = {
   status: OrderStatus;
   total: number;
   createdAt: string;
+  estimatedDeliveryMinutes: number;
+  estimatedDeliveryAt: string;
   plateItemsCount?: number;
   extraItemsCount?: number;
   hasObservations?: boolean;

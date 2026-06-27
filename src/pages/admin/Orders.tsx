@@ -9,6 +9,7 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
+import { CountdownTimer } from '@/components/CountdownTimer';
 import { showError, showSuccess } from '@/components/ToastProvider';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { getOrder, getOrdersForRestaurant, updateOrderStatus } from '@/services/orders/order.service';
@@ -135,9 +136,11 @@ function OrderCard({
             {formatCreatedTime(order.createdAt)}
           </p>
         </div>
-        <span className={`shrink-0 max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis text-xs font-bold px-2 py-1 rounded-full ${statusConfig.badge}`}>
-          {statusConfig.label}
-        </span>
+        <CountdownTimer
+          estimatedDeliveryAt={order.estimatedDeliveryAt}
+          status={order.status}
+          className={`shrink-0 max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis text-xs font-bold px-2 py-1 rounded-full ${statusConfig.badge}`}
+        />
       </div>
 
       <div className="min-w-0">

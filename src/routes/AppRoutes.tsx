@@ -17,6 +17,8 @@ import { PlateBuilder } from '@/pages/customer/PlateBuilder';
 import { PlateReviewWithExtras } from '@/pages/customer/PlateReviewWithExtras';
 import { OrderConfirmation } from '@/pages/customer/OrderConfirmation';
 import { CustomerCartPage } from '@/pages/customer/CustomerCartPage';
+import { OrderTrackingPage } from '@/pages/customer/OrderTrackingPage';
+import { RecentOrdersPage } from '@/pages/customer/RecentOrdersPage';
 
 export function AppRoutes() {
   return (
@@ -31,6 +33,8 @@ export function AppRoutes() {
           <Route path="plate-review" element={<PlateReviewWithExtras />} />
           <Route path="cart" element={<CustomerCartPage />} />
           <Route path="order-confirmation" element={<OrderConfirmation />} />
+          <Route path="orders" element={<RecentOrdersPage />} />
+          <Route path="orders/:orderId" element={<OrderTrackingPage />} />
         </Route>
 
         <Route path="admin" element={<AdminLayout />}>
