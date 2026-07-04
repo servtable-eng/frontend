@@ -1,10 +1,8 @@
-export type PortionSize = 'SMALL' | 'MEDIUM' | 'LARGE';
-
 export type PlateReviewItem = {
   dishId: string;
   dishName: string;
   imageUrl: string;
-  portion: PortionSize;
+  portionWeightInGrams: number;
   observation: string;
 };
 
@@ -21,7 +19,7 @@ export type CreateOrderPayload = {
   customerPhone: string;
   plateItems: {
     dishId: string;
-    portionSize: PortionSize;
+    portionWeightInGrams: number;
     observation: string;
   }[];
   extraItems: {
@@ -36,7 +34,7 @@ export type OrderPlateItem = {
   id?: string;
   dishId: string;
   dishName: string;
-  portionSize: PortionSize;
+  portionWeightInGrams: number;
   observation: string;
   unitPrice?: number;
   subtotal?: number;
@@ -58,6 +56,7 @@ export type OrderSummary = {
   customerPhone: string;
   status: OrderStatus;
   total: number;
+  orderCost: number;
   createdAt: string;
   estimatedDeliveryMinutes: number;
   estimatedDeliveryAt: string;

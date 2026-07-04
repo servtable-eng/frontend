@@ -1,5 +1,5 @@
-import { useRef, useState, type ChangeEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import {
   ChevronRight, UploadCloud, X, CheckCircle2, ImageOff,
 } from 'lucide-react';
@@ -7,7 +7,7 @@ import { Button, Input, Select } from '@workspace/ui';
 import '@workspace/ui/styles.css';
 import { ROUTES } from '@/routes/routeConstants';
 import { getConfiguredRestaurantId } from '@/services/api';
-import { createDish } from '@/services/dishes/dish.service';
+import { createDish, getDish, updateDish } from '@/services/dishes/dish.service';
 import '@/styles/tokens.css';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { AvailabilityToggle } from '@/components/admin/AdminShared';
@@ -26,12 +26,17 @@ const CUBA_OPTS = Array.from({ length: 12 }, (_, i) => ({
 }));
 CUBA_OPTS.unshift({ value: '', label: 'Selecione a posição' });
 
+const MIN_RECOMMENDED_WEIGHT = 25;
+const MAX_RECOMMENDED_WEIGHT = 1000;
+const RECOMMENDED_WEIGHT_STEP = 25;
+
 type FormState = {
   nome:         string;
   descricao:    string;
   ingredientes: string;
   categoria:    string;
   custoPorKg:        string;
+  recommendedWeightInGrams: number;
   disponivel:   boolean;
   imagemUrl:    string | null;
 };
@@ -42,6 +47,7 @@ const INITIAL: FormState = {
   ingredientes: '',
   categoria:    '',
   custoPorKg:        '',
+  recommendedWeightInGrams: 250,
   disponivel:   true,
   imagemUrl:    null,
 };
@@ -91,10 +97,13 @@ function Textarea({ value, onChange, rows = 3, placeholder, error }: {
 }
 
 export function CadastroPratoForm() {
+  const { dishId } = useParams();
+  const isEditing = Boolean(dishId);
   const [form, setForm]       = useState<FormState>(INITIAL);
   const [errors, setErrors]   = useState<Partial<Record<keyof FormState, string>>>({});
   const [saved, setSaved]     = useState(false);
   const [saving, setSaving]   = useState(false);
+  const [loadingDish, setLoadingDish] = useState(false);
   const [apiError, setApiError] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -113,11 +122,49 @@ export function CadastroPratoForm() {
     reader.readAsDataURL(file);
   };
 
+  useEffect(() => {
+    if (!dishId) {
+      setForm(INITIAL);
+      setErrors({});
+      setSaved(false);
+      setApiError('');
+      return;
+    }
+
+    setLoadingDish(true);
+    setApiError('');
+
+    getDish(dishId)
+      .then(dish => {
+        setForm({
+          nome: dish.name,
+          descricao: dish.description,
+          ingredientes: dish.ingredients.join(', '),
+          categoria: dish.category,
+          custoPorKg: String(dish.costPerKg),
+          recommendedWeightInGrams: dish.recommendedWeightInGrams,
+          disponivel: dish.available,
+          imagemUrl: dish.imageUrl || null,
+        });
+        setErrors({});
+        setSaved(false);
+      })
+      .catch(() => setApiError('Não foi possível carregar o prato.'))
+      .finally(() => setLoadingDish(false));
+  }, [dishId]);
+
   const validate = (): boolean => {
     const e: typeof errors = {};
     if (!form.nome.trim())      e.nome      = 'Nome é obrigatório.';
     if (!form.categoria)        e.categoria = 'Selecione uma categoria.';
     if (!form.custoPorKg.trim())     e.custoPorKg     = 'Informe o custo por kg.';
+    if (
+      form.recommendedWeightInGrams < MIN_RECOMMENDED_WEIGHT
+      || form.recommendedWeightInGrams > MAX_RECOMMENDED_WEIGHT
+      || form.recommendedWeightInGrams % RECOMMENDED_WEIGHT_STEP !== 0
+    ) {
+      e.recommendedWeightInGrams = 'Informe um peso entre 25 g e 1000 g, em múltiplos de 25 g.';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -131,15 +178,22 @@ export function CadastroPratoForm() {
     setSaving(true);
     setApiError('');
     try {
-      await createDish(restaurantId, {
+      const payload = {
         name: form.nome.trim(),
         description: form.descricao.trim(),
         ingredients: form.ingredientes.split(',').map(item => item.trim()).filter(Boolean),
         category: form.categoria.startsWith('PRATO_PRINCIPAL') ? 'PRATO_PRINCIPAL' : form.categoria,
         imageUrl: form.imagemUrl ?? '',
         costPerKg: parseCurrency(form.custoPorKg),
+        recommendedWeightInGrams: form.recommendedWeightInGrams,
         available: form.disponivel,
-      });
+      };
+
+      if (dishId) {
+        await updateDish(dishId, payload);
+      } else {
+        await createDish(restaurantId, payload);
+      }
       setSaved(true);
     } catch {
       setApiError('Não foi possí­vel salvar o prato.');
@@ -173,10 +227,10 @@ export function CadastroPratoForm() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280' }}>
               <Link to={ROUTES.ADMIN_CARDAPIO} style={{ color: '#6B7280', textDecoration: 'none' }}>Cardápio</Link>
               <ChevronRight size={14} />
-              <span style={{ color: '#1F2937', fontWeight: 500 }}>Novo Prato</span>
+              <span style={{ color: '#1F2937', fontWeight: 500 }}>{isEditing ? 'Editar Prato' : 'Novo Prato'}</span>
             </div>
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#1F2937', letterSpacing: '-0.02em' }}>
-              Cadastro de Prato
+              {isEditing ? 'Editar Prato' : 'Cadastro de Prato'}
             </h1>
           </div>
 
@@ -184,7 +238,7 @@ export function CadastroPratoForm() {
           {saved && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#DCFCE7', border: '1px solid #86EFAC', borderRadius: 10, padding: '12px 16px' }}>
               <CheckCircle2 size={18} color="#15803D" />
-              <span style={{ fontSize: 14, fontWeight: 500, color: '#15803D' }}>Prato cadastrado com sucesso!</span>
+              <span style={{ fontSize: 14, fontWeight: 500, color: '#15803D' }}>{isEditing ? 'Prato atualizado com sucesso!' : 'Prato cadastrado com sucesso!'}</span>
               <button onClick={() => setSaved(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#15803D', display: 'flex', padding: 2 }}>
                 <X size={16} />
               </button>
@@ -193,6 +247,11 @@ export function CadastroPratoForm() {
           {apiError && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px' }}>
               <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>{apiError}</span>
+            </div>
+          )}
+          {loadingDish && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F8F6F4', border: '1px solid #EAE4DF', borderRadius: 10, padding: '12px 16px' }}>
+              <span style={{ fontSize: 14, fontWeight: 500, color: '#6B7280' }}>Carregando prato...</span>
             </div>
           )}
 
@@ -258,12 +317,12 @@ export function CadastroPratoForm() {
                 </div>
               </div>
 
-              {/* Preço + Disponibilidade card */}
+              {/* Custo + Disponibilidade card */}
               <div style={card}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Gestão</p>
                 <div style={section}>
                   <div>
-                    <FieldLabel required>Preço Interno</FieldLabel>
+                    <FieldLabel required>Custo Interno</FieldLabel>
                     <div style={{ maxWidth: 220 }}>
                       <Input
                         placeholder="R$ 0,00"
@@ -273,8 +332,30 @@ export function CadastroPratoForm() {
                       />
                     </div>
                     <p style={{ margin: '5px 0 0', fontSize: 12, color: '#6B7280', fontFamily: 'Inter, system-ui, sans-serif' }}>
-                      Visível apenas para gestão. Clientes não veem o preço.
+                      Visível apenas para gestão. Clientes não veem o custo.
                     </p>
+                  </div>
+
+                  <div style={{ paddingTop: 12, borderTop: '1px solid #EAE4DF' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <FieldLabel required>Peso sugerido</FieldLabel>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#C9623A', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                        {form.recommendedWeightInGrams} g
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={MIN_RECOMMENDED_WEIGHT}
+                      max={MAX_RECOMMENDED_WEIGHT}
+                      step={RECOMMENDED_WEIGHT_STEP}
+                      value={form.recommendedWeightInGrams}
+                      onChange={(event: ChangeEvent<HTMLInputElement>) => set('recommendedWeightInGrams', Number(event.target.value))}
+                      style={{ width: '100%', accentColor: '#C9623A', cursor: 'pointer' }}
+                    />
+                    <p style={{ margin: '5px 0 0', fontSize: 12, color: '#6B7280', fontFamily: 'Inter, system-ui, sans-serif', lineHeight: 1.5 }}>
+                      Este será o peso sugerido ao cliente. O cliente poderá alterá-lo antes de adicionar o prato.
+                    </p>
+                    <FieldError msg={errors.recommendedWeightInGrams} />
                   </div>
 
                   <div style={{ paddingTop: 12, borderTop: '1px solid #EAE4DF', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -379,9 +460,9 @@ export function CadastroPratoForm() {
           <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="secondary" size="md" onClick={handleCancel}>Cancelar</Button>
             <PrimaryButton
-              text={saving ? 'Salvando...' : 'Salvar prato'}
+              text={saving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Salvar prato'}
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || loadingDish}
               loading={saving}
             />
           </div>

@@ -20,6 +20,7 @@ type BuffetDishesTabProps = {
   onCategoryChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onToggleAvailability: (id: string) => void;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 };
 
@@ -39,6 +40,7 @@ export function BuffetDishesTab({
   onCategoryChange,
   onPageChange,
   onToggleAvailability,
+  onEdit,
   onDelete,
 }: BuffetDishesTabProps) {
   return (
@@ -128,6 +130,7 @@ export function BuffetDishesTab({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <button
                         title="Editar"
+                        onClick={() => onEdit(dish.id)}
                         style={{
                           background: 'none', border: '1px solid #EAE4DF', borderRadius: 7,
                           padding: '6px 8px', cursor: 'pointer', color: '#6B7280',

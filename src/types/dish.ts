@@ -13,6 +13,7 @@ export type ClientDishDto = {
   name: string;
   description: string;
   imageUrl: string;
+  recommendedWeightInGrams: number;
   category?: string;
 };
 
@@ -23,6 +24,7 @@ export type RestaurantDishDto = {
   category: DishCategory;
   buffetPosition: number | string;
   costPerKg: number;
+  recommendedWeightInGrams: number;
   available: boolean;
 };
 
@@ -36,6 +38,7 @@ export type DishDto = {
   imageUrl: string;
   photoUpdatedAt?: string | null;
   costPerKg: number;
+  recommendedWeightInGrams: number;
   buffetPosition: number;
   available: boolean;
 };
@@ -49,5 +52,6 @@ export type DishPayload = {
   category: DishCategory;
   imageUrl: string;
   costPerKg: number;
+  recommendedWeightInGrams: number;
   available: boolean;
 };

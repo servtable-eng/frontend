@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCustomerPlate } from '@/contexts/CustomerPlateContext';
-import type { ClientDishDto } from '@/types/dish';
-import type { PlateReviewState, PortionSize } from '@/types/order';
+import type { PlateReviewState } from '@/types/order';
 import {
   AddMoreButton,
   PlateBuilderBottomBar,
@@ -12,17 +11,22 @@ import {
 import { customerFont, EmptyState, ImgSafe, MobilePageHeader } from '@/components/customer/CustomerShared';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ROUTES } from '@/routes/routeConstants';
+import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
+import { calculateBuffetPrice, calculatePlateBuffetSubtotal } from '@/utils/buffetPricing';
 import '../../styles/tokens.css';
 
-const PRICE_PER_100G = 4.5;
-const PORTION_WEIGHTS: Record<PortionSize, number> = { SMALL: 150, MEDIUM: 250, LARGE: 350 };
-const PORTION_LABELS: Record<PortionSize, string> = { SMALL: 'Pequena', MEDIUM: 'Media', LARGE: 'Grande' };
-const PORTIONS: PortionSize[] = ['SMALL', 'MEDIUM', 'LARGE'];
+function calculatePlateWeight(items: ReturnType<typeof useCustomerPlate>['plateItems']) {
+  return items.reduce(
+    (sum, item) => sum + item.portionWeightInGrams * item.quantity,
+    0,
+  );
+}
 
 export function PlateBuilder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const builderState = location.state as Pick<PlateReviewState, 'cartPlateId' | 'extraQuantities'> | null;
+  const { pricePer100g } = useRestaurantPricePer100g();
+  const builderState = location.state as (Pick<PlateReviewState, 'cartPlateId' | 'extraQuantities'> & { editItemId?: string }) | null;
   const {
     plateItems,
     totalQuantity,
@@ -31,18 +35,12 @@ export function PlateBuilder() {
   } = useCustomerPlate();
   const [confirmed, setConfirmed] = useState(false);
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
-  const [draftPortion, setDraftPortion] = useState<PortionSize>('MEDIUM');
+  const [draftPortionWeight, setDraftPortionWeight] = useState(250);
   const [draftObservation, setDraftObservation] = useState('');
+  const [hasOpenedInitialEdit, setHasOpenedInitialEdit] = useState(false);
 
-  const items: ClientDishDto[] = plateItems.map(item => ({
-    id: item.dishId,
-    name: item.name,
-    description: item.description,
-    imageUrl: item.imageUrl,
-  }));
-
-  const setPortion = (id: string, portionSize: PortionSize) => {
-    updatePlateItem(id, { portionSize });
+  const setPortionWeight = (id: string, portionWeightInGrams: number) => {
+    updatePlateItem(id, { portionWeightInGrams, hasConfirmedWeight: true });
     setConfirmed(false);
   };
 
@@ -57,17 +55,26 @@ export function PlateBuilder() {
   };
 
   const openEdit = (id: string) => {
-    const item = plateItems.find(plateItem => plateItem.dishId === id);
+    const item = plateItems.find(plateItem => plateItem.id === id);
     if (!item) return;
 
     setEditingDishId(id);
-    setDraftPortion(item.portionSize);
+    setDraftPortionWeight(item.portionWeightInGrams);
     setDraftObservation(item.observation);
   };
 
+  useEffect(() => {
+    if (!builderState?.editItemId || editingDishId || hasOpenedInitialEdit) {
+      return;
+    }
+
+    openEdit(builderState.editItemId);
+    setHasOpenedInitialEdit(true);
+  }, [builderState?.editItemId, editingDishId, hasOpenedInitialEdit, plateItems]);
+
   const closeEdit = () => {
     setEditingDishId(null);
-    setDraftPortion('MEDIUM');
+    setDraftPortionWeight(250);
     setDraftObservation('');
   };
 
@@ -75,7 +82,8 @@ export function PlateBuilder() {
     if (!editingDishId) return;
 
     updatePlateItem(editingDishId, {
-      portionSize: draftPortion,
+      portionWeightInGrams: draftPortionWeight,
+      hasConfirmedWeight: true,
       observation: draftObservation,
     });
     setConfirmed(false);
@@ -89,10 +97,14 @@ export function PlateBuilder() {
     closeEdit();
   };
 
-  const goBack = () => navigate(-1);
+  const goBack = () => navigate(ROUTES.CUSTOMER_HOME);
   const goToBuffet = () => navigate(ROUTES.CUSTOMER_HOME);
 
   const continueToReview = () => {
+    if (!plateItems.every(item => item.hasConfirmedWeight)) {
+      return;
+    }
+
     const state: PlateReviewState = {
       cartPlateId: builderState?.cartPlateId,
       extraQuantities: builderState?.extraQuantities,
@@ -100,7 +112,7 @@ export function PlateBuilder() {
         dishId: item.dishId,
         dishName: item.name,
         imageUrl: item.imageUrl,
-        portion: item.portionSize,
+        portionWeightInGrams: item.portionWeightInGrams,
         observation: item.observation,
       })),
     };
@@ -109,15 +121,10 @@ export function PlateBuilder() {
     navigate(ROUTES.CUSTOMER_PLATE_REVIEW, { state });
   };
 
-  const totalWeight = plateItems.reduce(
-    (sum, item) => sum + PORTION_WEIGHTS[item.portionSize] * item.quantity,
-    0,
-  );
-  const totalPrice = plateItems.reduce(
-    (sum, item) => sum + PRICE_PER_100G * PORTION_WEIGHTS[item.portionSize] * item.quantity / 100,
-    0,
-  );
-  const editingItem = plateItems.find(item => item.dishId === editingDishId) ?? null;
+  const totalWeight = calculatePlateWeight(plateItems);
+  const totalPrice = calculatePlateBuffetSubtotal(plateItems, pricePer100g);
+  const editingItem = plateItems.find(item => item.id === editingDishId) ?? null;
+  const canContinue = plateItems.length > 0 && plateItems.every(item => item.hasConfirmedWeight);
 
   return (
     <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
@@ -133,7 +140,7 @@ export function PlateBuilder() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 110px' }}>
-        {items.length === 0 && (
+        {plateItems.length === 0 && (
           <EmptyState
             title="Prato vazio"
             message="Volte ao buffet para selecionar itens"
@@ -142,24 +149,37 @@ export function PlateBuilder() {
           />
         )}
 
-        {items.map(item => {
-          const draftItem = plateItems.find(plateItem => plateItem.dishId === item.id);
-          const portion = draftItem?.portionSize ?? 'MEDIUM';
-          const note = draftItem?.observation ?? '';
-          const quantity = draftItem?.quantity ?? 1;
-          const itemPrice = PRICE_PER_100G * PORTION_WEIGHTS[portion] * quantity / 100;
+        {plateItems.length > 0 && (
+          <PlateBuilderSummary
+            itemCount={totalQuantity}
+            totalWeight={totalWeight}
+            pricePer100g={pricePer100g}
+            totalPrice={totalPrice}
+          />
+        )}
+
+        {plateItems.map(item => {
+          const portionWeightInGrams = item.portionWeightInGrams;
+          const hasConfirmedWeight = item.hasConfirmedWeight;
+          const note = item.observation;
+          const quantity = item.quantity;
+          const itemPrice = calculateBuffetPrice(portionWeightInGrams, pricePer100g) * quantity;
 
           return (
             <PlateDishCard
               key={item.id}
-              item={item}
-              portion={portion}
+              item={{
+                id: item.dishId,
+                name: item.name,
+                description: item.description,
+                imageUrl: item.imageUrl,
+                recommendedWeightInGrams: item.portionWeightInGrams,
+              }}
+              portionWeightInGrams={portionWeightInGrams}
+              hasConfirmedWeight={hasConfirmedWeight}
               note={note}
               price={itemPrice}
-              portionWeights={PORTION_WEIGHTS}
-              portionLabels={PORTION_LABELS}
-              portions={PORTIONS}
-              onSetPortion={nextPortion => setPortion(item.id, nextPortion)}
+              onSetPortionWeight={nextWeight => setPortionWeight(item.id, nextWeight)}
               onSetNote={nextNote => setNote(item.id, nextNote)}
               onEdit={() => openEdit(item.id)}
               onRemove={() => removeItem(item.id)}
@@ -167,22 +187,14 @@ export function PlateBuilder() {
           );
         })}
 
-        {items.length > 0 && <AddMoreButton onClick={goToBuffet} />}
-
-        {items.length > 0 && (
-          <PlateBuilderSummary
-            itemCount={totalQuantity}
-            totalWeight={totalWeight}
-            pricePer100g={PRICE_PER_100G}
-            totalPrice={totalPrice}
-          />
-        )}
+        {plateItems.length > 0 && <AddMoreButton onClick={goToBuffet} />}
       </div>
 
-      {items.length > 0 && (
+      {plateItems.length > 0 && (
         <PlateBuilderBottomBar
           totalPrice={totalPrice}
           confirmed={confirmed}
+          canContinue={canContinue}
           onContinue={continueToReview}
         />
       )}
@@ -210,35 +222,22 @@ export function PlateBuilder() {
             </div>
 
             <div style={{ padding: 16 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Porcao</p>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-                {PORTIONS.map(portion => {
-                  const active = draftPortion === portion;
-
-                  return (
-                    <button
-                      key={portion}
-                      type="button"
-                      onClick={() => setDraftPortion(portion)}
-                      style={{
-                        flex: 1,
-                        padding: '9px 4px',
-                        borderRadius: 10,
-                        border: 'none',
-                        background: active ? '#C9623A' : '#F0EDE9',
-                        color: active ? '#fff' : '#374151',
-                        cursor: 'pointer',
-                        fontFamily: customerFont,
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <div>{PORTION_LABELS[portion]}</div>
-                      <div style={{ fontSize: 10, opacity: 0.75, marginTop: 1 }}>{PORTION_WEIGHTS[portion]}g</div>
-                    </button>
-                  );
-                })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Peso da porção</p>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#C9623A' }}>{draftPortionWeight} g</span>
               </div>
+              <input
+                type="range"
+                min={25}
+                max={1000}
+                step={25}
+                value={draftPortionWeight}
+                onChange={event => setDraftPortionWeight(Number(event.target.value))}
+                style={{ width: '100%', accentColor: '#C9623A', cursor: 'pointer', marginBottom: 8 }}
+              />
+              <p style={{ margin: '0 0 16px', fontSize: 11, color: '#6B7280', lineHeight: 1.35 }}>
+                Sugestão do restaurante. Ajuste conforme desejar.
+              </p>
 
               <label style={{ display: 'grid', gap: 6, fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 Observacao

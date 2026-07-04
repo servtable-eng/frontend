@@ -11,6 +11,7 @@ import {
   GerenciamentoCardapio,
   OrganizacaoBuffet,
   CadastroPratoForm,
+  Configuracoes,
 } from '@/pages/admin';
 import { DishDetails } from '@/pages/customer/DishDetails';
 import { PlateBuilder } from '@/pages/customer/PlateBuilder';
@@ -42,9 +43,11 @@ export function AppRoutes() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="cardapio" element={<GerenciamentoCardapio />} />
           <Route path="cardapio/form" element={<CadastroPratoForm />} />
+          <Route path="cardapio/form/:dishId" element={<CadastroPratoForm />} />
           <Route path="pedidos" element={<Orders />} />
           <Route path="imagens" element={<GestaoImagensBuffet />} />
           <Route path="buffet" element={<OrganizacaoBuffet />} />
+          <Route path="configuracoes" element={<Configuracoes />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

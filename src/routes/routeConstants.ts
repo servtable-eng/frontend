@@ -12,9 +12,11 @@ export const ROUTES = {
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_CARDAPIO: '/admin/cardapio',
   ADMIN_CARDAPIO_FORM: '/admin/cardapio/form',
+  ADMIN_CARDAPIO_EDIT_FORM: '/admin/cardapio/form/:dishId',
   ADMIN_ORDERS: '/admin/pedidos',
   ADMIN_IMAGES: '/admin/imagens',
   ADMIN_BUFFET: '/admin/buffet',
+  ADMIN_SETTINGS: '/admin/configuracoes',
 };
 
 export function customerDishPath(id: string) {
@@ -23,4 +25,8 @@ export function customerDishPath(id: string) {
 
 export function customerOrderPath(orderId: string) {
   return `/orders/${encodeURIComponent(orderId)}`;
+}
+
+export function adminDishFormPath(dishId: string) {
+  return `/admin/cardapio/form/${encodeURIComponent(dishId)}`;
 }

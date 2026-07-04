@@ -13,7 +13,7 @@ import { CountdownTimer } from '@/components/CountdownTimer';
 import { showError, showSuccess } from '@/components/ToastProvider';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { getOrder, getOrdersForRestaurant, updateOrderStatus } from '@/services/orders/order.service';
-import type { OrderDetails, OrderPlateItem, OrderStatus, OrderSummary } from '@/types/order';
+import type { OrderDetails, OrderStatus, OrderSummary } from '@/types/order';
 import '../../styles/tokens.css';
 
 const OPERATION_STATUSES: OrderStatus[] = ['PENDING', 'RECEIVED', 'PREPARING', 'READY', 'DELIVERED'];
@@ -24,12 +24,6 @@ const STATUS_COLUMNS: { status: OrderStatus; label: string; icon: LucideIcon; bo
   { status: 'READY', label: 'Prontos', icon: PackageCheck, border: 'border-l-[#22C55E]', badge: 'bg-green-50 text-green-700' },
   { status: 'DELIVERED', label: 'Entregues', icon: CheckCircle2, border: 'border-l-[#6B7280]', badge: 'bg-gray-100 text-gray-600' },
 ];
-
-const PORTION_LABELS: Record<OrderPlateItem['portionSize'], string> = {
-  SMALL: 'Pequena',
-  MEDIUM: 'Média',
-  LARGE: 'Grande',
-};
 
 const brl = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
 
@@ -91,6 +85,22 @@ function getActionLabel(status: OrderStatus) {
   return '';
 }
 
+function getPreviousStatus(status: OrderStatus): OrderStatus | null {
+  if (status === 'PREPARING') return 'RECEIVED';
+  if (status === 'READY') return 'PREPARING';
+  if (status === 'DELIVERED') return 'READY';
+  return null;
+}
+
+function getPreviousActionLabel(status: OrderStatus) {
+  if (status === 'RECEIVED' || status === 'PENDING') return 'Sem status anterior';
+  if (status === 'PREPARING') return '← Voltar para Recebido';
+  if (status === 'READY') return '← Voltar para Preparando';
+  if (status === 'DELIVERED') return '← Voltar para Pronto';
+  if (status === 'CANCELED') return 'Cancelado';
+  return 'Sem status anterior';
+}
+
 function getPlateItemsCount(order: OrderSummary) {
   if (typeof order.plateItemsCount === 'number') return order.plateItemsCount;
   return 'plateItems' in order && Array.isArray(order.plateItems) ? order.plateItems.length : 0;
@@ -113,19 +123,34 @@ function orderHasObservations(order: OrderSummary) {
 function OrderCard({
   order,
   active,
+  isUpdatingStatus,
+  isStatusUpdateInProgress,
   onClick,
+  onPreviousStatus,
 }: {
   order: OrderSummary;
   active: boolean;
+  isUpdatingStatus: boolean;
+  isStatusUpdateInProgress: boolean;
   onClick: () => void;
+  onPreviousStatus: (order: OrderSummary) => void;
 }) {
   const statusConfig = STATUS_COLUMNS.find(column => column.status === getOrderColumnStatus(order.status)) ?? STATUS_COLUMNS[0];
+  const previousStatus = getPreviousStatus(order.status);
+  const canMovePrevious = Boolean(previousStatus) && !isStatusUpdateInProgress;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className={`w-full min-w-0 overflow-hidden text-left serv-bg-surface rounded-lg shadow-sm border serv-border border-l-4 ${statusConfig.border} p-4 flex flex-col gap-3 transition ${active ? 'ring-2 ring-[#C9623A]/30' : 'hover:shadow-md'}`}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className={`w-full min-w-0 overflow-hidden text-left serv-bg-surface rounded-lg shadow-sm border serv-border border-l-4 ${statusConfig.border} p-4 flex flex-col gap-3 transition cursor-pointer ${active ? 'ring-2 ring-[#C9623A]/30' : 'hover:shadow-md'}`}
     >
       <div className="flex justify-between items-start gap-3 min-w-0">
         <div className="min-w-0">
@@ -171,9 +196,27 @@ function OrderCard({
             </span>
           )}
         </div>
-        <span className="shrink-0 font-semibold serv-text-primary whitespace-nowrap">{brl(order.total)}</span>
+        <div className="shrink-0 text-right whitespace-nowrap">
+          <p className="font-semibold serv-text-primary">Total: {brl(order.total)}</p>
+          <p className="text-xs font-semibold serv-text-secondary mt-0.5">Custo: {brl(order.orderCost)}</p>
+        </div>
       </div>
-    </button>
+      <button
+        type="button"
+        onClick={event => {
+          event.stopPropagation();
+          onPreviousStatus(order);
+        }}
+        disabled={!canMovePrevious}
+        className={`w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+          canMovePrevious
+            ? 'serv-border serv-text-primary bg-white hover:bg-gray-50'
+            : 'border-gray-100 text-gray-400 bg-gray-50 cursor-not-allowed'
+        }`}
+      >
+        {isUpdatingStatus ? 'Atualizando...' : getPreviousActionLabel(order.status)}
+      </button>
+    </div>
   );
 }
 
@@ -189,11 +232,17 @@ function EmptyColumnState() {
 function OrderDetailPanel({
   order,
   isLoading,
+  isUpdatingStatus,
+  isStatusUpdateInProgress,
   onAdvance,
+  onPreviousStatus,
 }: {
   order: OrderDetails | null;
   isLoading: boolean;
+  isUpdatingStatus: boolean;
+  isStatusUpdateInProgress: boolean;
   onAdvance: (order: OrderDetails) => void;
+  onPreviousStatus: (order: OrderDetails) => void;
 }) {
   if (isLoading) {
     return (
@@ -216,6 +265,8 @@ function OrderDetailPanel({
   }
 
   const actionLabel = getActionLabel(order.status);
+  const previousStatus = getPreviousStatus(order.status);
+  const canMovePrevious = Boolean(previousStatus) && !isStatusUpdateInProgress;
 
   return (
     <aside className="w-[360px] shrink-0 serv-bg-surface border serv-border rounded-xl overflow-hidden flex flex-col">
@@ -255,11 +306,11 @@ function OrderDetailPanel({
           <h3 className="text-xs font-bold serv-text-secondary uppercase tracking-[0.08em] mb-3">Itens do Pedido</h3>
           <div className="space-y-3">
             {order.plateItems.map(item => (
-              <div key={`${item.dishId}-${item.portionSize}-${item.observation}`} className="rounded-lg border serv-border p-3">
+              <div key={`${item.dishId}-${item.portionWeightInGrams}-${item.observation}`} className="rounded-lg border serv-border p-3">
                 <div className="flex justify-between gap-3">
                   <p className="font-semibold serv-text-primary text-sm">{item.dishName}</p>
                   <span className="text-xs font-semibold text-[#C9623A] bg-[#C9623A]/10 px-2 py-1 rounded-full h-fit">
-                    {PORTION_LABELS[item.portionSize]}
+                    {item.portionWeightInGrams} g
                   </span>
                 </div>
                 {typeof item.unitPrice === 'number' && (
@@ -317,18 +368,39 @@ function OrderDetailPanel({
             <span className="font-bold serv-text-primary">Total</span>
             <span className="font-bold serv-text-primary">{brl(order.total)}</span>
           </div>
+          <div className="flex justify-between text-sm">
+            <span className="serv-text-secondary">Custo</span>
+            <span className="font-semibold serv-text-primary">{brl(order.orderCost)}</span>
+          </div>
         </section>
       </div>
 
-      {actionLabel && (
+      {(actionLabel || getPreviousActionLabel(order.status)) && (
         <div className="p-5 border-t serv-border">
           <button
             type="button"
-            onClick={() => onAdvance(order)}
-            className="w-full rounded-lg bg-[#C9623A] text-white font-semibold text-sm px-4 py-3 hover:bg-[#B85632] transition"
+            onClick={() => onPreviousStatus(order)}
+            disabled={!canMovePrevious}
+            className={`w-full rounded-lg border font-semibold text-sm px-4 py-3 transition ${
+              canMovePrevious
+                ? 'serv-border serv-text-primary bg-white hover:bg-gray-50'
+                : 'border-gray-100 text-gray-400 bg-gray-50 cursor-not-allowed'
+            } ${actionLabel ? 'mb-2' : ''}`}
           >
-            {actionLabel}
+            {isUpdatingStatus ? 'Atualizando...' : getPreviousActionLabel(order.status)}
           </button>
+          {actionLabel && (
+          <button
+            type="button"
+            onClick={() => onAdvance(order)}
+            disabled={isStatusUpdateInProgress}
+            className={`w-full rounded-lg text-white font-semibold text-sm px-4 py-3 transition ${
+              isStatusUpdateInProgress ? 'bg-[#B8A59A] cursor-not-allowed' : 'bg-[#C9623A] hover:bg-[#B85632]'
+            }`}
+          >
+            {isUpdatingStatus ? 'Atualizando...' : actionLabel}
+          </button>
+          )}
         </div>
       )}
     </aside>
@@ -342,6 +414,7 @@ export function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [updatingStatusOrderId, setUpdatingStatusOrderId] = useState('');
   const [ordersError, setOrdersError] = useState('');
 
   useEffect(() => {
@@ -405,23 +478,44 @@ export function Orders() {
     })
   ), [orders]);
 
+  const changeOrderStatus = async (order: OrderSummary, status: OrderStatus) => {
+    if (updatingStatusOrderId) return;
+
+    setUpdatingStatusOrderId(order.id);
+
+    try {
+      const updatedOrder = await updateOrderStatus(order.id, status);
+
+      setOrders(currentOrders => currentOrders.map(currentOrder => (
+        currentOrder.id === updatedOrder.id
+          ? { ...currentOrder, ...updatedOrder }
+          : currentOrder
+      )));
+      setSelectedOrder(currentOrder => (
+        currentOrder?.id === updatedOrder.id
+          ? updatedOrder
+          : currentOrder
+      ));
+      showSuccess('Status atualizado com sucesso.');
+    } catch {
+      showError('Não foi possível atualizar o status. Tente novamente em instantes.');
+    } finally {
+      setUpdatingStatusOrderId('');
+    }
+  };
+
   const advanceOrder = async (order: OrderDetails) => {
     const nextStatus = getNextStatus(order.status);
     if (!nextStatus) return;
 
-    try {
-      const updatedOrder = await updateOrderStatus(order.id, nextStatus);
+    await changeOrderStatus(order, nextStatus);
+  };
 
-      setOrders(currentOrders => currentOrders.map(currentOrder => (
-        currentOrder.id === updatedOrder.id
-          ? { ...currentOrder, status: updatedOrder.status }
-          : currentOrder
-      )));
-      setSelectedOrder(updatedOrder);
-      showSuccess('Status do pedido atualizado.');
-    } catch {
-      showError('Erro ao atualizar status do pedido.');
-    }
+  const moveOrderToPreviousStatus = async (order: OrderSummary) => {
+    const previousStatus = getPreviousStatus(order.status);
+    if (!previousStatus) return;
+
+    await changeOrderStatus(order, previousStatus);
   };
 
   return (
@@ -477,7 +571,10 @@ export function Orders() {
                           key={order.id}
                           order={order}
                           active={selectedOrderId === order.id}
+                          isUpdatingStatus={updatingStatusOrderId === order.id}
+                          isStatusUpdateInProgress={Boolean(updatingStatusOrderId)}
                           onClick={() => setSelectedOrderId(order.id)}
+                          onPreviousStatus={moveOrderToPreviousStatus}
                         />
                       ))
                     )}
@@ -491,7 +588,10 @@ export function Orders() {
           <OrderDetailPanel
             order={selectedOrder}
             isLoading={isLoadingDetails}
+            isUpdatingStatus={Boolean(selectedOrder && updatingStatusOrderId === selectedOrder.id)}
+            isStatusUpdateInProgress={Boolean(updatingStatusOrderId)}
             onAdvance={advanceOrder}
+            onPreviousStatus={moveOrderToPreviousStatus}
           />
         </div>
       )}

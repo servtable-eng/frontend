@@ -2,9 +2,33 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Camera, Plus, CheckCircle2 } from 'lucide-react';
 import { useCustomerPlate } from '@/contexts/CustomerPlateContext';
+import { useCustomerCart } from '@/contexts/CustomerCartContext';
 import { ROUTES } from '@/routes/routeConstants';
 import { getDish } from '../../services/dishes/dish.service';
 import '../../styles/tokens.css';
+import { showSuccess } from '@/components/ToastProvider';
+import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
+import { calculateBuffetPrice } from '@/utils/buffetPricing';
+
+const MIN_PORTION_WEIGHT = 25;
+const MAX_PORTION_WEIGHT = 1000;
+const PORTION_WEIGHT_STEP = 25;
+const brl = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+
+function normalizePortionWeight(value: unknown) {
+  const numericValue = typeof value === 'number' && Number.isFinite(value) ? value : MIN_PORTION_WEIGHT;
+  const clampedValue = Math.min(MAX_PORTION_WEIGHT, Math.max(MIN_PORTION_WEIGHT, numericValue));
+
+  return Math.round(clampedValue / PORTION_WEIGHT_STEP) * PORTION_WEIGHT_STEP;
+}
+
+function getValidRecommendedWeight(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  if (value < MIN_PORTION_WEIGHT || value > MAX_PORTION_WEIGHT) return null;
+  if (value % PORTION_WEIGHT_STEP !== 0) return null;
+
+  return value;
+}
 
 type DetailDish = {
   id: string;
@@ -12,6 +36,7 @@ type DetailDish = {
   category: string;
   image: string;
   available: boolean;
+  recommendedWeightInGrams: number;
   photoUpdatedAtLabel: string | null;
   desc: string;
   ingredients: string[];
@@ -23,6 +48,7 @@ const EMPTY_DISH: DetailDish = {
   category: '-',
   image: '',
   available: false,
+  recommendedWeightInGrams: 250,
   photoUpdatedAtLabel: null,
   desc: 'Nao foi possivel carregar este prato.',
   ingredients: ['Ingredientes nao disponiveis'],
@@ -51,43 +77,100 @@ function formatPhotoUpdatedAt(value?: string | null) {
 export function DishDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { setDishQuantity } = useCustomerPlate();
+  const { pricePer100g } = useRestaurantPricePer100g();
+  const { addDishPortion, plateItems } = useCustomerPlate();
+  const { cartPlates } = useCustomerCart();
   const [dish, setDish] = useState<DetailDish>(EMPTY_DISH);
+  const [portionWeightInGrams, setPortionWeightInGrams] = useState(EMPTY_DISH.recommendedWeightInGrams);
+  const [canShowRecommendedWeightHint, setCanShowRecommendedWeightHint] = useState(false);
+  const [observation, setObservation] = useState('');
   const [added, setAdded] = useState(false);
+
+  const getInitialPortionWeight = (dishId: string, recommendedWeightInGrams: number) => {
+    const latestCartPlateItem = [...cartPlates]
+      .reverse()
+      .flatMap(cartPlate => [...cartPlate.plateItems].reverse())
+      .find(item => item.dishId === dishId);
+    const latestCurrentPlateItem = [...plateItems]
+      .reverse()
+      .find(item => item.dishId === dishId);
+    const recommendedWeight = getValidRecommendedWeight(recommendedWeightInGrams);
+
+    if (latestCartPlateItem?.portionWeightInGrams !== undefined) {
+      return {
+        weight: normalizePortionWeight(latestCartPlateItem.portionWeightInGrams),
+        isRestaurantRecommendation: false,
+      };
+    }
+
+    if (latestCurrentPlateItem?.portionWeightInGrams !== undefined) {
+      return {
+        weight: normalizePortionWeight(latestCurrentPlateItem.portionWeightInGrams),
+        isRestaurantRecommendation: false,
+      };
+    }
+
+    if (recommendedWeight !== null) {
+      return {
+        weight: recommendedWeight,
+        isRestaurantRecommendation: true,
+      };
+    }
+
+    return {
+      weight: MIN_PORTION_WEIGHT,
+      isRestaurantRecommendation: false,
+    };
+  };
 
   useEffect(() => {
     if (!id) return;
 
     getDish(id)
       .then(data => {
+        const initialWeight = getInitialPortionWeight(data.id, data.recommendedWeightInGrams);
+
         setDish({
           id: data.id,
           name: data.name,
           category: data.category.replaceAll('_', ' '),
           image: data.imageUrl,
           available: data.available,
+          recommendedWeightInGrams: normalizePortionWeight(data.recommendedWeightInGrams),
           photoUpdatedAtLabel: formatPhotoUpdatedAt(data.photoUpdatedAt),
           desc: data.description,
           ingredients: data.ingredients.length > 0 ? data.ingredients : ['Ingredientes nao disponiveis'],
         });
+        setPortionWeightInGrams(initialWeight.weight);
+        setCanShowRecommendedWeightHint(initialWeight.isRestaurantRecommendation);
+        setObservation('');
         setAdded(false);
       })
-      .catch(() => setDish(EMPTY_DISH));
-  }, [id]);
+      .catch(() => {
+        setDish(EMPTY_DISH);
+        setCanShowRecommendedWeightHint(false);
+      });
+  }, [id, cartPlates, plateItems]);
 
   const handleAdd = () => {
     if (!dish.available || !dish.id) return;
 
-    setDishQuantity({
+    addDishPortion({
       id: dish.id,
       name: dish.name,
       description: dish.desc,
       imageUrl: dish.image,
+      recommendedWeightInGrams: dish.recommendedWeightInGrams,
       category: dish.category,
-    }, 1);
+    }, portionWeightInGrams, observation);
     setAdded(true);
+    showSuccess(`${dish.name} adicionada ao prato.`);
     setTimeout(() => navigate(ROUTES.CUSTOMER_PLATE_BUILDER), 350);
   };
+
+  const shouldShowRecommendedWeightHint = (
+    canShowRecommendedWeightHint
+  );
 
   return (
     <div style={{
@@ -213,6 +296,59 @@ export function DishDetails() {
                 </span>
               ))}
             </div>
+          </section>
+
+          <section style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Peso da porção
+              </p>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#C9623A' }}>{portionWeightInGrams} g</span>
+            </div>
+            <input
+              type="range"
+              min={MIN_PORTION_WEIGHT}
+              max={MAX_PORTION_WEIGHT}
+              step={PORTION_WEIGHT_STEP}
+              value={portionWeightInGrams}
+              onChange={event => {
+                setPortionWeightInGrams(normalizePortionWeight(Number(event.target.value)));
+                setCanShowRecommendedWeightHint(false);
+              }}
+              style={{ width: '100%', accentColor: '#C9623A', cursor: 'pointer' }}
+            />
+            <p style={{ margin: '6px 0 0', fontSize: 13, fontWeight: 800, color: '#C9623A' }}>
+              ≈ {brl(calculateBuffetPrice(portionWeightInGrams, pricePer100g))}
+            </p>
+            {shouldShowRecommendedWeightHint && (
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: '#6B7280', lineHeight: 1.35 }}>
+                Sugestão do restaurante. Ajuste conforme desejar.
+              </p>
+            )}
+          </section>
+
+          <section style={{ marginBottom: 20 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Observação
+            </p>
+            <input
+              type="text"
+              value={observation}
+              onChange={event => setObservation(event.target.value)}
+              placeholder="Adicionar observação..."
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '11px 12px',
+                borderRadius: 10,
+                border: '1.5px solid #EAE4DF',
+                background: '#FAFAF9',
+                fontSize: 13,
+                color: '#1F2937',
+                fontFamily: font,
+                outline: 'none',
+              }}
+            />
           </section>
 
           {dish.photoUpdatedAtLabel && (

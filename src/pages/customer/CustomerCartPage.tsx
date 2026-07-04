@@ -10,28 +10,22 @@ import { getExtrasForRestaurant } from '@/services/extras/extra.service';
 import { createOrder } from '@/services/orders/order.service';
 import { addRecentOrder, getRecentOrders } from '@/services/orders/recentOrders.storage';
 import type { ExtraDto } from '@/types/extra';
-import type { PlateReviewState, PortionSize } from '@/types/order';
+import type { PlateReviewState } from '@/types/order';
 import { ExtrasScroller } from '@/components/customer/PlateReviewComponents';
 import { brl, customerFont, EmptyState, ImgSafe, MobilePageHeader } from '@/components/customer/CustomerShared';
+import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
+import { calculatePlateBuffetSubtotal } from '@/utils/buffetPricing';
 import '../../styles/tokens.css';
-
-const PORTION_LABELS: Record<PortionSize, string> = {
-  SMALL: 'Pequena',
-  MEDIUM: 'Media',
-  LARGE: 'Grande',
-};
 
 const CUSTOMER_INFO_STORAGE_KEY = 'servtable_customer_info';
 
 type CustomerInfo = {
   customerName: string;
-  tableNumber: string;
   customerPhone: string;
 };
 
 const EMPTY_CUSTOMER_INFO: CustomerInfo = {
   customerName: '',
-  tableNumber: '',
   customerPhone: '',
 };
 
@@ -46,7 +40,6 @@ function loadCustomerInfo(): CustomerInfo {
 
     return {
       customerName: typeof parsed.customerName === 'string' ? parsed.customerName : '',
-      tableNumber: typeof parsed.tableNumber === 'string' ? onlyDigits(parsed.tableNumber) : '',
       customerPhone: typeof parsed.customerPhone === 'string' ? onlyDigits(parsed.customerPhone).slice(0, 11) : '',
     };
   } catch {
@@ -78,10 +71,6 @@ function getCustomerValidationErrors(customerInfo: CustomerInfo) {
     errors.push('O nome deve ter pelo menos 3 caracteres.');
   }
 
-  if (!customerInfo.tableNumber) {
-    errors.push('Informe o numero da mesa.');
-  }
-
   if (!customerInfo.customerPhone) {
     errors.push('Informe o telefone.');
   } else if (customerInfo.customerPhone.length < 10 || customerInfo.customerPhone.length > 11) {
@@ -94,6 +83,7 @@ function getCustomerValidationErrors(customerInfo: CustomerInfo) {
 export function CustomerCartPage() {
   const navigate = useNavigate();
   const restaurant = useRestaurant();
+  const { pricePer100g } = useRestaurantPricePer100g();
   const {
     cartPlates,
     extraQuantities,
@@ -108,8 +98,15 @@ export function CustomerCartPage() {
   const [extrasError, setExtrasError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(() => loadCustomerInfo());
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [tableNumber, setTableNumber] = useState('');
+  const [tableNumberError, setTableNumberError] = useState('');
   const [submitMessage, setSubmitMessage] = useState('');
   const [hasRecentOrders, setHasRecentOrders] = useState(() => getRecentOrders().length > 0);
+
+  useEffect(() => {
+    saveCustomerInfo(customerInfo);
+  }, [customerInfo]);
 
   useEffect(() => {
     if (!restaurant.id) {
@@ -135,7 +132,10 @@ export function CustomerCartPage() {
     Object.entries(extraQuantities).filter(([, quantity]) => quantity > 0)
   ), [extraQuantities]);
   const totals = useMemo(() => {
-    const buffet = cartPlates.reduce((sum, plate) => sum + plate.buffetSubtotal, 0);
+    const buffet = cartPlates.reduce(
+      (sum, plate) => sum + calculatePlateBuffetSubtotal(plate.plateItems, pricePer100g),
+      0,
+    );
     const extrasSubtotal = availableExtras.reduce(
       (sum, item) => sum + item.salePrice * (extraQuantities[item.id] ?? 0),
       0,
@@ -146,7 +146,7 @@ export function CustomerCartPage() {
       extras: extrasSubtotal,
       total: buffet + extrasSubtotal,
     };
-  }, [availableExtras, cartPlates, extraQuantities]);
+  }, [availableExtras, cartPlates, extraQuantities, pricePer100g]);
   const customerValidationErrors = useMemo(
     () => getCustomerValidationErrors(customerInfo),
     [customerInfo],
@@ -155,19 +155,22 @@ export function CustomerCartPage() {
   const hasExtraItems = selectedExtraItems.length > 0;
   const isCartEmpty = !hasDishItems && !hasExtraItems;
   const isCustomerInfoValid = customerValidationErrors.length === 0;
-  const canSubmitOrder = isCustomerInfoValid && !isCartEmpty && !isSending;
+  const canSubmitOrder = !isSending;
 
   const updateCustomerInfo = (field: keyof CustomerInfo, value: string) => {
     const nextValue = field === 'customerName'
       ? value
-      : onlyDigits(value).slice(0, field === 'customerPhone' ? 11 : undefined);
+      : onlyDigits(value).slice(0, 11);
 
     setCustomerInfo(current => {
-      const next = { ...current, [field]: nextValue };
-      saveCustomerInfo(next);
-      return next;
+      return { ...current, [field]: nextValue };
     });
     setSubmitMessage('');
+  };
+
+  const updateTableNumber = (value: string) => {
+    setTableNumber(onlyDigits(value));
+    setTableNumberError('');
   };
 
   const goToBuffet = () => navigate(ROUTES.CUSTOMER_HOME);
@@ -182,7 +185,7 @@ export function CustomerCartPage() {
         dishId: item.dishId,
         dishName: item.name,
         imageUrl: item.imageUrl,
-        portion: item.portionSize,
+        portionWeightInGrams: item.portionWeightInGrams,
         observation: item.observation,
       })),
       extraQuantities: Object.fromEntries(
@@ -194,7 +197,7 @@ export function CustomerCartPage() {
     navigate(ROUTES.CUSTOMER_PLATE_BUILDER, { state });
   };
 
-  const finishOrder = async () => {
+  const finishOrder = () => {
     if (isSending) {
       return;
     }
@@ -209,12 +212,34 @@ export function CustomerCartPage() {
       return;
     }
 
-    setIsSending(true);
     setSubmitMessage('');
+    setTableNumber('');
+    setTableNumberError('');
+    setIsTableModalOpen(true);
+  };
+
+  const confirmOrder = async () => {
+    if (isSending) {
+      return;
+    }
+
+    if (!tableNumber) {
+      setTableNumberError('Informe o numero da mesa.');
+      return;
+    }
+
+    const parsedTableNumber = Number(tableNumber);
+    if (!Number.isInteger(parsedTableNumber) || parsedTableNumber <= 0) {
+      setTableNumberError('Informe um numero de mesa valido.');
+      return;
+    }
+
+    setIsSending(true);
+    setTableNumberError('');
 
     const preparedCustomerData = {
       customerName: customerInfo.customerName.trim(),
-      tableNumber: Number(customerInfo.tableNumber),
+      tableNumber: parsedTableNumber,
       customerPhone: customerInfo.customerPhone,
     };
 
@@ -228,7 +253,7 @@ export function CustomerCartPage() {
           plate.plateItems.flatMap(item => (
             Array.from({ length: item.quantity }, () => ({
               dishId: item.dishId,
-              portionSize: item.portionSize,
+              portionWeightInGrams: item.portionWeightInGrams,
               observation: item.observation ?? '',
             }))
           ))
@@ -247,11 +272,15 @@ export function CustomerCartPage() {
         createdAt: new Date().toISOString(),
       });
       setHasRecentOrders(true);
+      setIsTableModalOpen(false);
+      setTableNumber('');
       clearCart();
       showSuccess('Pedido enviado com sucesso.');
       navigate(customerOrderPath(createdOrder.id));
     } catch {
-      showError('Erro ao enviar pedido.');
+      const errorMessage = 'Nao foi possivel enviar seu pedido. Tente novamente em instantes.';
+      setTableNumberError(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsSending(false);
     }
@@ -306,31 +335,17 @@ export function CustomerCartPage() {
                   />
                 </label>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 10 }}>
-                  <label style={{ display: 'grid', gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Mesa</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={customerInfo.tableNumber}
-                      onChange={event => updateCustomerInfo('tableNumber', event.target.value)}
-                      placeholder="12"
-                      style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #EAE4DF', borderRadius: 10, padding: '11px 12px', fontSize: 14, color: '#1F2937', background: '#FAFAF9', fontFamily: customerFont, outline: 'none' }}
-                    />
-                  </label>
-
-                  <label style={{ display: 'grid', gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Telefone</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formatBrazilianPhone(customerInfo.customerPhone)}
-                      onChange={event => updateCustomerInfo('customerPhone', event.target.value)}
-                      placeholder="(11) 99999-9999"
-                      style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #EAE4DF', borderRadius: 10, padding: '11px 12px', fontSize: 14, color: '#1F2937', background: '#FAFAF9', fontFamily: customerFont, outline: 'none' }}
-                    />
-                  </label>
-                </div>
+                <label style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Telefone</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatBrazilianPhone(customerInfo.customerPhone)}
+                    onChange={event => updateCustomerInfo('customerPhone', event.target.value)}
+                    placeholder="(11) 99999-9999"
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #EAE4DF', borderRadius: 10, padding: '11px 12px', fontSize: 14, color: '#1F2937', background: '#FAFAF9', fontFamily: customerFont, outline: 'none' }}
+                  />
+                </label>
 
                 {customerValidationErrors.length > 0 && (
                   <div style={{ display: 'grid', gap: 4 }}>
@@ -344,7 +359,10 @@ export function CustomerCartPage() {
               </div>
             </section>
 
-            {cartPlates.map((plate, index) => (
+            {cartPlates.map((plate, index) => {
+              const plateBuffetSubtotal = calculatePlateBuffetSubtotal(plate.plateItems, pricePer100g);
+
+              return (
               <section key={plate.id} style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', padding: 14, marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FDF5F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -378,12 +396,12 @@ export function CustomerCartPage() {
 
                 <div style={{ display: 'grid', gap: 8 }}>
                   {plate.plateItems.map(item => (
-                    <div key={item.dishId} style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: '1px solid #F0EDE9' }}>
+                    <div key={item.id} style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: '1px solid #F0EDE9' }}>
                       <ImgSafe src={item.imageUrl} alt={item.name} style={{ width: 48, height: 48, borderRadius: 10, flexShrink: 0 }} size={18} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>{item.name}</p>
                         <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 600, color: '#C9623A' }}>
-                          {item.quantity}x · {PORTION_LABELS[item.portionSize]}
+                          {item.quantity}x · {item.portionWeightInGrams} g
                         </p>
                         {item.observation && (
                           <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6B7280', fontStyle: 'italic', lineHeight: 1.3 }}>
@@ -398,15 +416,16 @@ export function CustomerCartPage() {
                 <div style={{ borderTop: '1px solid #F0EDE9', marginTop: 12, paddingTop: 10, display: 'grid', gap: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 12, color: '#6B7280' }}>Buffet</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{brl(plate.buffetSubtotal)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{brl(plateBuffetSubtotal)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: '#1F2937' }}>Subtotal</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#C9623A' }}>{brl(plate.buffetSubtotal)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#C9623A' }}>{brl(plateBuffetSubtotal)}</span>
                   </div>
                 </div>
               </section>
-            ))}
+              );
+            })}
 
             <ExtrasScroller
               title="Bebidas"
@@ -474,6 +493,55 @@ export function CustomerCartPage() {
             </button>
           </div>
         </>
+      )}
+
+      {isTableModalOpen && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 40, background: 'rgba(31, 41, 55, 0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+          <div style={{ width: '100%', maxWidth: 342, background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', padding: 16, boxShadow: '0 18px 50px rgba(31, 41, 55, 0.22)' }}>
+            <h2 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 800, color: '#1F2937' }}>
+              Informe sua mesa
+            </h2>
+            <label style={{ display: 'grid', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Número da mesa</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={tableNumber}
+                onChange={event => updateTableNumber(event.target.value)}
+                placeholder="12"
+                autoFocus
+                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #EAE4DF', borderRadius: 10, padding: '11px 12px', fontSize: 14, color: '#1F2937', background: '#FAFAF9', fontFamily: customerFont, outline: 'none' }}
+              />
+            </label>
+            {tableNumberError && (
+              <p style={{ margin: '10px 0 0', fontSize: 12, color: '#B85632', lineHeight: 1.35 }}>
+                {tableNumberError}
+              </p>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSending) return;
+                  setIsTableModalOpen(false);
+                  setTableNumberError('');
+                }}
+                disabled={isSending}
+                style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1.5px solid #EAE4DF', background: '#fff', color: '#6B7280', fontSize: 14, fontWeight: 700, cursor: isSending ? 'default' : 'pointer', fontFamily: customerFont }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmOrder}
+                disabled={isSending}
+                style={{ width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: isSending ? '#B8A59A' : '#C9623A', color: '#fff', fontSize: 14, fontWeight: 700, cursor: isSending ? 'default' : 'pointer', fontFamily: customerFont }}
+              >
+                {isSending ? 'Enviando...' : 'Confirmar pedido'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -20,7 +20,7 @@ import { AdminPageHeader } from '@/components/admin/AdminShared';
 import { BuffetDishesTab } from '@/components/admin/BuffetDishesTab';
 import { ExtraItemFormModal, type ExtraItemForm } from './cardapio/ExtraItemFormModal';
 import { ExtraItemsTab } from './cardapio/ExtraItemsTab';
-import { ROUTES } from '@/routes/routeConstants';
+import { ROUTES, adminDishFormPath } from '@/routes/routeConstants';
 
 const ITEMS_PER_PAGE = 10;
 const EMPTY_EXTRA_FORM: ExtraItemForm = {
@@ -283,6 +283,7 @@ export function GerenciamentoCardapio() {
             onCategoryChange={setCategory}
             onPageChange={setCurrentPage}
             onToggleAvailability={toggleAvailability}
+            onEdit={dishId => navigate(adminDishFormPath(dishId))}
             onDelete={deleteDish}
           />
         ) : (

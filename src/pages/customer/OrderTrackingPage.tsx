@@ -5,7 +5,7 @@ import { CountdownTimer } from '@/components/CountdownTimer';
 import { brl, customerFont, EmptyState, LoadingState, MobilePageHeader } from '@/components/customer/CustomerShared';
 import { ROUTES } from '@/routes/routeConstants';
 import { getOrder } from '@/services/orders/order.service';
-import type { OrderDetails, OrderStatus, PortionSize } from '@/types/order';
+import type { OrderDetails, OrderStatus } from '@/types/order';
 
 const STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
   RECEIVED: 'Pedido recebido',
@@ -23,12 +23,6 @@ const STATUS_STEP: Partial<Record<OrderStatus, number>> = {
 };
 
 const PROGRESS_STEPS = ['Recebido', 'Preparando', 'Pronto', 'Entregue'];
-
-const PORTION_LABELS: Record<PortionSize, string> = {
-  SMALL: 'Pequena',
-  MEDIUM: 'Media',
-  LARGE: 'Grande',
-};
 
 const isTerminalStatus = (status: OrderStatus) => status === 'DELIVERED' || status === 'CANCELED';
 
@@ -204,7 +198,7 @@ export function OrderTrackingPage() {
                 {order.plateItems.map((item, index) => (
                   <div key={`${item.dishId}-${index}`} style={{ borderTop: index === 0 ? 'none' : '1px solid #F0EDE9', paddingTop: index === 0 ? 0 : 10 }}>
                     <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1F2937' }}>{item.dishName}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 700, color: '#C9623A' }}>{PORTION_LABELS[item.portionSize]}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 700, color: '#C9623A' }}>{item.portionWeightInGrams} g</p>
                     {item.observation && (
                       <p style={{ margin: '5px 0 0', fontSize: 12, color: '#6B7280', lineHeight: 1.35 }}>
                         {item.observation}

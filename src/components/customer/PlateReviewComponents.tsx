@@ -59,9 +59,11 @@ export function ExtraItemCard({ item, qty, onInc, onDec }: { item: ExtraDto; qty
 
 export function PlateReviewItemCard({
   item,
+  onEdit,
   onRemove,
 }: {
   item: PlateReviewItem;
+  onEdit: () => void;
   onRemove: () => void;
 }) {
   return (
@@ -79,10 +81,15 @@ export function PlateReviewItemCard({
         )}
       </div>
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        <button style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <button
+          type="button"
+          onClick={onEdit}
+          style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
           <Pencil size={13} color="#6B7280" />
         </button>
         <button
+          type="button"
           onClick={onRemove}
           style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
@@ -93,7 +100,7 @@ export function PlateReviewItemCard({
   );
 }
 
-export function BuffetSubtotalCard({ subtotal }: { subtotal: number }) {
+export function BuffetSubtotalCard({ subtotal, pricePer100g, totalWeightInGrams }: { subtotal: number; pricePer100g: number; totalWeightInGrams: number }) {
   return (
     <div style={{ margin: '12px 14px 0', background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', padding: '14px 16px' }}>
       <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -101,8 +108,8 @@ export function BuffetSubtotalCard({ subtotal }: { subtotal: number }) {
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {[
-          { label: 'Peso estimado', value: '450g' },
-          { label: 'R$ / 100g', value: 'R$ 8,99' },
+          { label: 'Peso estimado', value: `${totalWeightInGrams} g` },
+          { label: 'R$ / 100g', value: brl(pricePer100g) },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, color: '#6B7280' }}>{r.label}</span>
@@ -216,7 +223,7 @@ export function PlateReviewBottomBar({
         style={{
           width: '100%', padding: '15px', borderRadius: 14, border: 'none',
           background: placed ? '#15803D' : '#C9623A',
-          color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+          color: '#fff', fontSize: 15, fontWeight: 700, cursor: isSending ? 'default' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           fontFamily: customerFont, transition: 'background 0.2s',
         }}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, UtensilsCrossed, ChevronRight, Plus, Minus, ShoppingCart, ReceiptText } from 'lucide-react';
+import { Search, UtensilsCrossed, ChevronRight, Plus, ShoppingCart, ReceiptText } from 'lucide-react';
 import { customerDishPath, ROUTES } from '../../routes/routeConstants';
 import { useRestaurant } from '../../contexts/RestaurantContext';
 import { getDishesForClient } from '../../services/dishes/dish.service';
@@ -9,8 +9,30 @@ import { useCustomerCart } from '@/contexts/CustomerCartContext';
 import { useCustomerPlate } from '@/contexts/CustomerPlateContext';
 import { getCategoriesFromDishes, type CategoryOption } from '@/utils/categories';
 import type { ClientDishDto } from '@/types/dish';
+import { showSuccess } from '@/components/ToastProvider';
+import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
+import { calculateBuffetPrice } from '@/utils/buffetPricing';
 
 const font = 'Inter, system-ui, sans-serif';
+const MIN_PORTION_WEIGHT = 25;
+const MAX_PORTION_WEIGHT = 1000;
+const PORTION_WEIGHT_STEP = 25;
+const brl = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+
+function normalizePortionWeight(value: unknown) {
+  const numericValue = typeof value === 'number' && Number.isFinite(value) ? value : MIN_PORTION_WEIGHT;
+  const clampedValue = Math.min(MAX_PORTION_WEIGHT, Math.max(MIN_PORTION_WEIGHT, numericValue));
+
+  return Math.round(clampedValue / PORTION_WEIGHT_STEP) * PORTION_WEIGHT_STEP;
+}
+
+function getValidRecommendedWeight(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  if (value < MIN_PORTION_WEIGHT || value > MAX_PORTION_WEIGHT) return null;
+  if (value % PORTION_WEIGHT_STEP !== 0) return null;
+
+  return value;
+}
 
 function ImageWithFallback({ src, alt, style }: { src: string; alt: string; style?: React.CSSProperties }) {
   const [err, setErr] = useState(false);
@@ -26,14 +48,18 @@ function ImageWithFallback({ src, alt, style }: { src: string; alt: string; styl
 
 export function CustomerBuffetHome() {
   const restaurant = useRestaurant();
+  const { pricePer100g } = useRestaurantPricePer100g();
   const navigate = useNavigate();
-  const { plateItems, totalQuantity, updateDishQuantity } = useCustomerPlate();
+  const { plateItems, totalQuantity, addDishPortion } = useCustomerPlate();
   const { cartPlates } = useCustomerCart();
   const [dishes, setDishes] = useState<ClientDishDto[]>([]);
   const [error, setError] = useState('');
   const [activeCat, setActiveCat] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [expandedDishId, setExpandedDishId] = useState('');
+  const [quickAddWeights, setQuickAddWeights] = useState<Record<string, number>>({});
+  const [quickAddUsesRestaurantRecommendation, setQuickAddUsesRestaurantRecommendation] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!restaurant.id) {
@@ -56,10 +82,79 @@ export function CustomerBuffetHome() {
     return matchesCat && matchesSearch;
   });
 
-  const quantities = Object.fromEntries(plateItems.map(item => [item.dishId, item.quantity]));
+  const quantities = plateItems.reduce<Record<string, number>>((counts, item) => {
+    counts[item.dishId] = (counts[item.dishId] ?? 0) + item.quantity;
+    return counts;
+  }, {});
   const totalItems = totalQuantity;
 
-  const setQty = (dish: ClientDishDto, delta: number) => updateDishQuantity(dish, delta);
+  const getQuickAddWeight = (dish: ClientDishDto) => normalizePortionWeight(
+    quickAddWeights[dish.id] ?? dish.recommendedWeightInGrams,
+  );
+
+  const shouldShowRecommendedWeightHint = (dish: ClientDishDto) => quickAddUsesRestaurantRecommendation[dish.id] === true;
+
+  const getInitialQuickAddWeight = (dish: ClientDishDto) => {
+    const latestCartPlateItem = [...cartPlates]
+      .reverse()
+      .flatMap(cartPlate => [...cartPlate.plateItems].reverse())
+      .find(item => item.dishId === dish.id);
+    const latestCurrentPlateItem = [...plateItems]
+      .reverse()
+      .find(item => item.dishId === dish.id);
+    const recommendedWeight = getValidRecommendedWeight(dish.recommendedWeightInGrams);
+
+    if (latestCartPlateItem?.portionWeightInGrams !== undefined) {
+      return {
+        weight: normalizePortionWeight(latestCartPlateItem.portionWeightInGrams),
+        isRestaurantRecommendation: false,
+      };
+    }
+
+    if (latestCurrentPlateItem?.portionWeightInGrams !== undefined) {
+      return {
+        weight: normalizePortionWeight(latestCurrentPlateItem.portionWeightInGrams),
+        isRestaurantRecommendation: false,
+      };
+    }
+
+    if (recommendedWeight !== null) {
+      return {
+        weight: recommendedWeight,
+        isRestaurantRecommendation: true,
+      };
+    }
+
+    return {
+      weight: MIN_PORTION_WEIGHT,
+      isRestaurantRecommendation: false,
+    };
+  };
+
+  const openQuickAdd = (dish: ClientDishDto) => {
+    const initialWeight = getInitialQuickAddWeight(dish);
+    const hasStoredWeight = quickAddWeights[dish.id] !== undefined;
+
+    setExpandedDishId(dish.id);
+    setQuickAddWeights(current => ({
+      ...current,
+      [dish.id]: normalizePortionWeight(current[dish.id] ?? initialWeight.weight),
+    }));
+    setQuickAddUsesRestaurantRecommendation(current => ({
+      ...current,
+      [dish.id]: !hasStoredWeight && initialWeight.isRestaurantRecommendation,
+    }));
+  };
+
+  const cancelQuickAdd = () => {
+    setExpandedDishId('');
+  };
+
+  const confirmQuickAdd = (dish: ClientDishDto) => {
+    addDishPortion(dish, getQuickAddWeight(dish));
+    setExpandedDishId('');
+    showSuccess(`${dish.name} adicionada ao prato.`);
+  };
 
   const openPlateBuilder = () => {
     if (totalItems === 0) return;
@@ -254,54 +349,74 @@ export function CustomerBuffetHome() {
                     {dish.description}
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
-                    {qty === 0 ? (
-                      <button
-                        onClick={() => setQty(dish, 1)}
-                        style={{
-                          flex: 1, padding: '13px 0',
-                          borderRadius: 12, border: 'none',
-                          background: '#C9623A', color: '#fff',
-                          fontSize: 14, fontWeight: 700, fontFamily: font,
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  {expandedDishId === dish.id ? (
+                    <div style={{ borderTop: '1px solid #F0EDE9', paddingTop: 10, display: 'grid', gap: 9, marginTop: 'auto' }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                        Peso da porção
+                      </p>
+                      <input
+                        type="range"
+                        min={MIN_PORTION_WEIGHT}
+                        max={MAX_PORTION_WEIGHT}
+                        step={PORTION_WEIGHT_STEP}
+                        value={getQuickAddWeight(dish)}
+                        onChange={event => {
+                          setQuickAddWeights(current => ({
+                            ...current,
+                            [dish.id]: normalizePortionWeight(Number(event.target.value)),
+                          }));
+                          setQuickAddUsesRestaurantRecommendation(current => ({
+                            ...current,
+                            [dish.id]: false,
+                          }));
                         }}
-                      >
-                        <Plus size={16} />
-                        Adicionar ao prato
-                      </button>
-                    ) : (
-                      <>
+                        onInput={() => setQuickAddUsesRestaurantRecommendation(current => ({
+                          ...current,
+                          [dish.id]: false,
+                        }))}
+                        style={{ width: '100%', accentColor: '#C9623A', cursor: 'pointer' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#1F2937' }}>{getQuickAddWeight(dish)} g</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#C9623A' }}>≈ {brl(calculateBuffetPrice(getQuickAddWeight(dish), pricePer100g))}</span>
+                      </div>
+                      {shouldShowRecommendedWeightHint(dish) && (
+                        <p style={{ margin: 0, fontSize: 11, color: '#6B7280', lineHeight: 1.35 }}>
+                          Sugestão do restaurante. Ajuste conforme desejar.
+                        </p>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                         <button
-                          onClick={() => setQty(dish, -1)}
-                          style={{
-                            width: 44, height: 44, borderRadius: 12, border: '1.5px solid #EAE4DF',
-                            background: '#F8F6F4', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
+                          type="button"
+                          onClick={cancelQuickAdd}
+                          style={{ padding: '11px 0', borderRadius: 12, border: '1.5px solid #EAE4DF', background: '#fff', color: '#6B7280', fontSize: 14, fontWeight: 700, fontFamily: font, cursor: 'pointer' }}
                         >
-                          <Minus size={16} color="#374151" />
+                          Cancelar
                         </button>
-
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                          <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#C9623A', lineHeight: 1 }}>{qty}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9CA3AF' }}>{qty === 1 ? 'porcao' : 'porcoes'}</p>
-                        </div>
-
                         <button
-                          onClick={() => setQty(dish, 1)}
-                          style={{
-                            width: 44, height: 44, borderRadius: 12, border: 'none',
-                            background: '#C9623A', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
+                          type="button"
+                          onClick={() => confirmQuickAdd(dish)}
+                          style={{ padding: '11px 0', borderRadius: 12, border: 'none', background: '#C9623A', color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: font, cursor: 'pointer' }}
                         >
-                          <Plus size={16} color="#fff" />
+                          Adicionar
                         </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => openQuickAdd(dish)}
+                      style={{
+                        minHeight: 50, padding: '0 12px', marginTop: 'auto',
+                        borderRadius: 12, border: 'none',
+                        background: '#C9623A', color: '#fff',
+                        fontSize: 14, fontWeight: 700, fontFamily: font,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      }}
+                    >
+                      <Plus size={16} />
+                      Adicionar ao prato
+                    </button>
+                  )}
 
                   <Link
                     to={customerDishPath(dish.id)}

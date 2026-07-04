@@ -10,6 +10,8 @@ const emptyCart = (): PersistedCustomerCart => ({
   extraQuantities: {},
 });
 
+const createPersistedPlateItemId = () => `plate-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 const canUseStorage = () => typeof window !== 'undefined' && Boolean(window.localStorage);
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -33,6 +35,23 @@ const isValidCartPlate = (value: unknown): value is CustomerCartPlate => {
     typeof value.createdAt === 'string'
   );
 };
+
+function normalizeCartPlate(cartPlate: CustomerCartPlate): CustomerCartPlate {
+  return {
+    ...cartPlate,
+    plateItems: cartPlate.plateItems.map(item => {
+      const legacyItem = item as typeof item & { portionSize?: 'SMALL' | 'MEDIUM' | 'LARGE' };
+      const legacyWeight = legacyItem.portionSize === 'SMALL' ? 150 : legacyItem.portionSize === 'LARGE' ? 350 : 250;
+
+      return {
+        ...item,
+        id: item.id ?? createPersistedPlateItemId(),
+        portionWeightInGrams: item.portionWeightInGrams ?? legacyWeight,
+        hasConfirmedWeight: item.hasConfirmedWeight ?? true,
+      };
+    }),
+  };
+}
 
 const isValidCart = (value: unknown): value is PersistedCustomerCart => {
   if (!isRecord(value)) return false;
@@ -64,7 +83,10 @@ export function loadCartFromStorage(restaurantId: string): PersistedCustomerCart
     const parsed = JSON.parse(rawCart) as unknown;
 
     if (isValidCart(parsed)) {
-      return parsed;
+      return {
+        ...parsed,
+        cartPlates: parsed.cartPlates.map(normalizeCartPlate),
+      };
     }
   } catch {
     // Corrupted storage is cleared below so the cart can recover safely.

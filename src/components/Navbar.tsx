@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { icon: ClipboardList, label: 'Pedidos', to: ROUTES.ADMIN_ORDERS },
   { icon: BookOpen, label: 'Cardápio', to: ROUTES.ADMIN_CARDAPIO },
   { icon: LayoutList, label: 'Organização do Buffet', to: ROUTES.ADMIN_BUFFET },
-  { icon: Settings, label: 'Configurações', to: ROUTES.ADMIN_ROOT },
+  { icon: Settings, label: 'Configurações', to: ROUTES.ADMIN_SETTINGS },
 ];
 
 export function Navbar() {
