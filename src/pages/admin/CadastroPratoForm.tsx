@@ -37,6 +37,8 @@ type FormState = {
   categoria:    string;
   custoPorKg:        string;
   recommendedWeightInGrams: number;
+  availableQuantityInGrams: string;
+  lowStockThresholdInGrams: string;
   disponivel:   boolean;
   imagemUrl:    string | null;
 };
@@ -47,15 +49,38 @@ const INITIAL: FormState = {
   ingredientes: '',
   categoria:    '',
   custoPorKg:        '',
-  recommendedWeightInGrams: 250,
+  recommendedWeightInGrams: MIN_RECOMMENDED_WEIGHT,
+  availableQuantityInGrams: '',
+  lowStockThresholdInGrams: '',
   disponivel:   true,
   imagemUrl:    null,
 };
+
+function getInitialRecommendedWeight(weight?: number | null) {
+  return typeof weight === 'number' && weight >= MIN_RECOMMENDED_WEIGHT
+    ? weight
+    : MIN_RECOMMENDED_WEIGHT;
+}
 
 const restaurantId = getConfiguredRestaurantId();
 function parseCurrency(value: string) {
   const normalized = value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
   return Number(normalized) || 0;
+}
+
+function parseGramsInput(value: string) {
+  if (!/^\d+$/.test(value.trim())) return null;
+  const grams = Number(value);
+  return Number.isSafeInteger(grams) && grams > 0 ? grams : null;
+}
+
+function formatGramsInput(value?: number | null) {
+  if (typeof value !== 'number') return '';
+  return String(Math.max(Math.trunc(value), 0));
+}
+
+function sanitizeGramsInput(value: string) {
+  return value.replace(/\D/g, '');
 }
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -142,7 +167,9 @@ export function CadastroPratoForm() {
           ingredientes: dish.ingredients.join(', '),
           categoria: dish.category,
           custoPorKg: String(dish.costPerKg),
-          recommendedWeightInGrams: dish.recommendedWeightInGrams,
+          recommendedWeightInGrams: getInitialRecommendedWeight(dish.recommendedWeightInGrams),
+          availableQuantityInGrams: formatGramsInput(dish.availableQuantityInGrams),
+          lowStockThresholdInGrams: formatGramsInput(dish.lowStockThresholdInGrams),
           disponivel: dish.available,
           imagemUrl: dish.imageUrl || null,
         });
@@ -165,6 +192,20 @@ export function CadastroPratoForm() {
     ) {
       e.recommendedWeightInGrams = 'Informe um peso entre 25 g e 1000 g, em múltiplos de 25 g.';
     }
+    if (form.disponivel) {
+      const availableQuantityInGrams = parseGramsInput(form.availableQuantityInGrams);
+      const lowStockThresholdInGrams = parseGramsInput(form.lowStockThresholdInGrams);
+
+      if (availableQuantityInGrams === null) {
+        e.availableQuantityInGrams = 'Informe uma quantidade disponível maior que zero.';
+      }
+
+      if (lowStockThresholdInGrams === null) {
+        e.lowStockThresholdInGrams = 'Informe uma quantidade disponível maior que zero.';
+      } else if (availableQuantityInGrams !== null && lowStockThresholdInGrams >= availableQuantityInGrams) {
+        e.lowStockThresholdInGrams = 'O alerta de estoque baixo deve ser menor que a quantidade disponível.';
+      }
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -178,6 +219,8 @@ export function CadastroPratoForm() {
     setSaving(true);
     setApiError('');
     try {
+      const availableQuantityInGrams = parseGramsInput(form.availableQuantityInGrams);
+      const lowStockThresholdInGrams = parseGramsInput(form.lowStockThresholdInGrams);
       const payload = {
         name: form.nome.trim(),
         description: form.descricao.trim(),
@@ -187,6 +230,9 @@ export function CadastroPratoForm() {
         costPerKg: parseCurrency(form.custoPorKg),
         recommendedWeightInGrams: form.recommendedWeightInGrams,
         available: form.disponivel,
+        ...(form.disponivel && availableQuantityInGrams !== null && lowStockThresholdInGrams !== null
+          ? { availableQuantityInGrams, lowStockThresholdInGrams }
+          : {}),
       };
 
       if (dishId) {
@@ -356,6 +402,38 @@ export function CadastroPratoForm() {
                       Este será o peso sugerido ao cliente. O cliente poderá alterá-lo antes de adicionar o prato.
                     </p>
                     <FieldError msg={errors.recommendedWeightInGrams} />
+                  </div>
+
+                  <div style={{ paddingTop: 12, borderTop: '1px solid #EAE4DF' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <FieldLabel required={form.disponivel}>Quantidade disponível</FieldLabel>
+                        <Input
+                          placeholder="Ex: 1500"
+                          value={form.availableQuantityInGrams}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => set('availableQuantityInGrams', sanitizeGramsInput(e.target.value))}
+                          error={errors.availableQuantityInGrams}
+                        />
+                        <p style={{ margin: '5px 0 0', fontSize: 12, color: '#6B7280', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                          Informe a quantidade em gramas (g), sem casas decimais.
+                        </p>
+                        <FieldError msg={errors.availableQuantityInGrams} />
+                      </div>
+
+                      <div>
+                        <FieldLabel required={form.disponivel}>Alerta de estoque baixo</FieldLabel>
+                        <Input
+                          placeholder="Ex: 750"
+                          value={form.lowStockThresholdInGrams}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => set('lowStockThresholdInGrams', sanitizeGramsInput(e.target.value))}
+                          error={errors.lowStockThresholdInGrams}
+                        />
+                        <p style={{ margin: '5px 0 0', fontSize: 12, color: '#6B7280', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                          Quando o estoque chegar nesse valor, o prato será destacado como baixo.
+                        </p>
+                        <FieldError msg={errors.lowStockThresholdInGrams} />
+                      </div>
+                    </div>
                   </div>
 
                   <div style={{ paddingTop: 12, borderTop: '1px solid #EAE4DF', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

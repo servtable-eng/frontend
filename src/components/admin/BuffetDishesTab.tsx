@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Plus, Scale, Trash2 } from 'lucide-react';
 import { SearchInput, Select, Badge } from '@workspace/ui';
 import type { RestaurantDishDto } from '@/types/dish';
 import { AvailabilityToggle, ErrorState, ImageCell } from './AdminShared';
@@ -20,9 +20,60 @@ type BuffetDishesTabProps = {
   onCategoryChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onToggleAvailability: (id: string) => void;
+  onAddStock: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 };
+
+const STOCK_STATUS_LABELS: Record<string, string> = {
+  NORMAL: 'Normal',
+  LOW: 'Baixo',
+  OUT_OF_STOCK: 'Esgotado',
+};
+
+function formatStockQuantity(value?: number | null) {
+  const grams = typeof value === 'number' ? Math.max(value, 0) : 0;
+
+  return `${grams} g`;
+}
+
+function getStockDisplay(dish: RestaurantDishDto) {
+  const availableQuantityInGrams = dish.availableQuantityInGrams ?? 0;
+  const lowStockThresholdInGrams = dish.lowStockThresholdInGrams ?? 0;
+  const status = availableQuantityInGrams <= 0
+    ? 'OUT_OF_STOCK'
+    : availableQuantityInGrams <= lowStockThresholdInGrams
+      ? 'LOW'
+      : dish.stockStatus === 'LOW'
+        ? 'LOW'
+        : 'NORMAL';
+  const label = STOCK_STATUS_LABELS[status] ?? status;
+  const color = status === 'OUT_OF_STOCK' ? '#DC2626' : status === 'LOW' ? '#B45309' : '#15803D';
+  const background = status === 'OUT_OF_STOCK' ? '#FEF2F2' : status === 'LOW' ? '#FFFBEB' : '#ECFDF5';
+
+  return {
+    label,
+    color,
+    background,
+    quantity: formatStockQuantity(availableQuantityInGrams),
+  };
+}
+
+function getAvailabilityDisplay(dish: RestaurantDishDto) {
+  if (!dish.available) {
+    return {
+      checked: false,
+      label: 'Indisponível',
+      color: '#9CA3AF',
+    };
+  }
+
+  return {
+    checked: true,
+    label: 'Disponível',
+    color: '#15803D',
+  };
+}
 
 export function BuffetDishesTab({
   dishes,
@@ -40,9 +91,12 @@ export function BuffetDishesTab({
   onCategoryChange,
   onPageChange,
   onToggleAvailability,
+  onAddStock,
   onEdit,
   onDelete,
 }: BuffetDishesTabProps) {
+  const availableDishesCount = dishes.filter(dish => getAvailabilityDisplay(dish).checked).length;
+
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', padding: '16px 20px', borderRadius: 12, border: '1px solid #EAE4DF' }}>
@@ -61,17 +115,27 @@ export function BuffetDishesTab({
           />
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Badge variant="success" dot>{dishes.filter(d => d.available).length} disponÃ­veis</Badge>
-          <Badge variant="secondary" dot>{dishes.filter(d => !d.available).length} indisponÃ­veis</Badge>
+          <Badge variant="success" dot>{availableDishesCount} disponÃ­veis</Badge>
+          <Badge variant="secondary" dot>{dishes.length - availableDishesCount} indisponÃ­veis</Badge>
         </div>
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #EAE4DF', borderRadius: 12, overflow: 'hidden' }}>
         <ErrorState message={error} />
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <colgroup>
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col style={{ width: 160, minWidth: 160 }} />
+          </colgroup>
           <thead>
             <tr style={{ background: '#FAFAF9', borderBottom: '1px solid #EAE4DF' }}>
-              {['Imagem', 'Nome', 'Categoria', 'Disponibilidade', 'Custo por kg', 'Posição da Cuba', 'Ações'].map(col => (
+              {['Imagem', 'Nome', 'Categoria', 'Disponibilidade', 'Estoque', 'Custo por kg', 'Posição da Cuba', 'Ações'].map(col => (
                 <th key={col} style={{
                   padding: '12px 20px', textAlign: 'left',
                   fontSize: 11, fontWeight: 600, color: '#6B7280',
@@ -85,12 +149,16 @@ export function BuffetDishesTab({
           <tbody>
             {totalItems === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: '48px 20px', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
+                <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
                   Nenhum prato encontrado.
                 </td>
               </tr>
             ) : (
-              currentPageItems.map((dish, i) => (
+              currentPageItems.map((dish, i) => {
+                const stockDisplay = getStockDisplay(dish);
+                const availabilityDisplay = getAvailabilityDisplay(dish);
+
+                return (
                 <tr
                   key={dish.id}
                   style={{
@@ -110,11 +178,21 @@ export function BuffetDishesTab({
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: 150 }}>
                       <AvailabilityToggle
-                        checked={dish.available}
+                        checked={availabilityDisplay.checked}
                         onChange={() => onToggleAvailability(dish.id)}
                       />
-                      <span style={{ width: 88, fontSize: 13, color: dish.available ? '#15803D' : '#9CA3AF', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                        {dish.available ? 'Disponí­vel' : 'Indisponí­vel'}
+                      <span style={{ width: 88, fontSize: 13, color: availabilityDisplay.color, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                        {availabilityDisplay.label}
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '14px 20px' }}>
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, minWidth: 96 }}>
+                      <span style={{ width: 'fit-content', borderRadius: 999, padding: '3px 9px', background: stockDisplay.background, color: stockDisplay.color, fontSize: 12, fontWeight: 700 }}>
+                        {stockDisplay.label}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                        {stockDisplay.quantity}
                       </span>
                     </div>
                   </td>
@@ -126,15 +204,15 @@ export function BuffetDishesTab({
                       Cuba {dish.buffetPosition}
                     </span>
                   </td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <td style={{ width: 160, minWidth: 160, padding: '14px 20px', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'nowrap' }}>
                       <button
                         title="Editar"
                         onClick={() => onEdit(dish.id)}
                         style={{
-                          background: 'none', border: '1px solid #EAE4DF', borderRadius: 7,
-                          padding: '6px 8px', cursor: 'pointer', color: '#6B7280',
-                          display: 'flex', alignItems: 'center', transition: 'color 0.15s',
+                          width: 44, height: 44, background: 'none', border: '1px solid #EAE4DF', borderRadius: 7,
+                          padding: 0, cursor: 'pointer', color: '#6B7280',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s',
                         }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#C9623A')}
                         onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}
@@ -142,12 +220,30 @@ export function BuffetDishesTab({
                         <Edit2 size={15} />
                       </button>
                       <button
+                        type="button"
+                        title="Adicionar estoque"
+                        aria-label="Adicionar estoque"
+                        onClick={() => onAddStock(dish.id)}
+                        style={{
+                          width: 44, height: 44, background: 'none', border: '1px solid #EAE4DF', borderRadius: 7,
+                          padding: 0, cursor: 'pointer', color: '#6B7280',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s',
+                          position: 'relative',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.color = '#C9623A')}
+                        onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}
+                      >
+                        <Scale size={16} />
+                        <Plus size={9} style={{ position: 'absolute', right: 9, top: 9, strokeWidth: 3 }} />
+                      </button>
+                      <button
                         title="Excluir"
+                        aria-label="Excluir"
                         onClick={() => onDelete(dish.id)}
                         style={{
-                          background: 'none', border: '1px solid #EAE4DF', borderRadius: 7,
-                          padding: '6px 8px', cursor: 'pointer', color: '#6B7280',
-                          display: 'flex', alignItems: 'center', transition: 'color 0.15s',
+                          width: 44, height: 44, background: 'none', border: '1px solid #EAE4DF', borderRadius: 7,
+                          padding: 0, cursor: 'pointer', color: '#6B7280',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s',
                         }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
                         onMouseLeave={e => (e.currentTarget.style.color = '#6B7280')}
@@ -157,7 +253,8 @@ export function BuffetDishesTab({
                     </div>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

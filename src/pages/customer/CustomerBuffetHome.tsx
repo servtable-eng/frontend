@@ -68,7 +68,9 @@ export function CustomerBuffetHome() {
     }
 
     getDishesForClient(restaurant.id)
-      .then(data => setDishes(data))
+      .then(data => setDishes(data.filter(dish => (
+        dish.available !== false && (dish.availableQuantityInGrams ?? 1) > 0
+      ))))
       .catch(() => setError('Houve um erro ao carregar os pratos.'));
   }, [restaurant.id]);
 

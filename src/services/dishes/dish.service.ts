@@ -1,5 +1,5 @@
 import { apiRequest } from "../api";
-import type { ClientDishDto, DishDto, DishPayload, RestaurantDishDto } from "../../types/dish";
+import type { ClientDishDto, DishAddStockPayload, DishDto, DishPayload, DishStockPayload, RestaurantDishDto } from "../../types/dish";
 
 export function getDishesForClient(restaurantId: string) {
   return apiRequest<ClientDishDto[]>(`/restaurants/${restaurantId}/client/dishes`);
@@ -27,8 +27,11 @@ export function updateDish(dishId: string, payload: DishPayload) {
   });
 }
 
-export function enableDish(dishId: string) {
-  return apiRequest<DishDto>(`/dishes/${dishId}/enable`, { method: "PATCH" });
+export function enableDish(dishId: string, payload?: DishStockPayload) {
+  return apiRequest<DishDto>(`/dishes/${dishId}/enable`, {
+    method: "PATCH",
+    ...(payload ? { body: payload } : {}),
+  });
 }
 
 export function disableDish(dishId: string) {
@@ -36,5 +39,12 @@ export function disableDish(dishId: string) {
 }
 
 export function deleteDish(dishId: string) {
-  return apiRequest<void>(`/dishes/${dishId}`, { method: "DELETE" });
+  return apiRequest<DishDto>(`/dishes/${dishId}`, { method: "DELETE" });
+}
+
+export function addDishStock(restaurantId: string, dishId: string, payload: DishAddStockPayload) {
+  return apiRequest<RestaurantDishDto>(`/restaurants/${restaurantId}/dishes/${dishId}/stock/add`, {
+    method: "PATCH",
+    body: payload,
+  });
 }

@@ -1,95 +1,191 @@
-import { ClipboardList, Clock, CheckCircle2, CheckSquare } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, CheckSquare, ClipboardList, Clock } from 'lucide-react';
+import { getConfiguredRestaurantId } from '@/services/api';
+import { getRestaurantDashboard } from '@/services/restaurants/dashboard.service';
+import type { RestaurantDashboard } from '@/types/dashboard';
+import type { OrderStatus } from '@/types/order';
 import '../../styles/tokens.css';
 
-const RECENT_ORDERS = [
-  { id: '#047', table: 'Mesa 12', status: 'Recebido', time: '12:45' },
-  { id: '#046', table: 'Mesa 04', status: 'Preparando', time: '12:42' },
-  { id: '#045', table: 'Mesa 08', status: 'Preparando', time: '12:38' },
-  { id: '#044', table: 'Mesa 15', status: 'Pronto', time: '12:35' },
-  { id: '#043', table: 'Mesa 02', status: 'Pronto', time: '12:30' },
-  { id: '#042', table: 'Balcão', status: 'Entregue', time: '12:25' },
-  { id: '#041', table: 'Mesa 07', status: 'Entregue', time: '12:20' },
-];
+const restaurantId = getConfiguredRestaurantId();
 
-const STATUS_COLORS: Record<string, string> = {
-  'Recebido': 'bg-[#F59E0B] text-white',
-  'Preparando': 'bg-[#C9623A] text-white',
-  'Pronto': 'bg-[#22C55E] text-white',
-  'Entregue': 'bg-[#6B7280] text-white',
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING: 'Pendente',
+  RECEIVED: 'Recebido',
+  PREPARING: 'Preparando',
+  READY: 'Pronto',
+  DELIVERED: 'Entregue',
+  CANCELED: 'Cancelado',
 };
 
+const STATUS_COLORS: Record<OrderStatus, string> = {
+  PENDING: 'bg-[#F59E0B] text-white',
+  RECEIVED: 'bg-[#F59E0B] text-white',
+  PREPARING: 'bg-[#C9623A] text-white',
+  READY: 'bg-[#22C55E] text-white',
+  DELIVERED: 'bg-[#6B7280] text-white',
+  CANCELED: 'bg-[#EF4444] text-white',
+};
+
+function formatDashboardDate(date: string) {
+  const [year, month, day] = date.split('-').map(Number);
+
+  if (!year || !month || !day) {
+    return date;
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function formatOrderTime(createdAt: string) {
+  const time = createdAt.match(/T(\d{2}:\d{2})/)?.[1];
+
+  if (time) {
+    return time;
+  }
+
+  const date = new Date(createdAt);
+  return Number.isNaN(date.getTime())
+    ? '--:--'
+    : new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(date);
+}
+
+function getOrderDisplayId(shortId: string | null | undefined, id: string) {
+  return shortId?.trim() || `#${id.replaceAll('-', '').slice(-4).toUpperCase()}`;
+}
+
 export function Dashboard() {
+  const [dashboard, setDashboard] = useState<RestaurantDashboard | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!restaurantId) {
+      setError('Restaurante não configurado.');
+      setIsLoading(false);
+      return;
+    }
+
+    getRestaurantDashboard(restaurantId)
+      .then(data => {
+        if (isActive) {
+          setDashboard(data);
+          setError('');
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setError('Não foi possível carregar os dados do dashboard.');
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <main className="flex-1 p-8 overflow-y-auto">
-        <header className="mb-8 flex items-end justify-between">
-          <div>
-            <h1 className="text-2xl font-bold serv-text-primary tracking-tight">Dashboard</h1>
-            <p className="serv-text-secondary mt-1">30 de maio de 2026</p>
-          </div>
-        </header>
-
-        {/* Metrics */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
-            <div className="flex items-center gap-2 serv-text-secondary mb-2">
-              <ClipboardList size={18} />
-              <span className="text-sm font-medium">Pedidos Hoje</span>
-            </div>
-            <span className="text-3xl font-bold serv-text-primary">47</span>
-          </div>
-          <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
-            <div className="flex items-center gap-2 text-[#C9623A] mb-2">
-              <Clock size={18} />
-              <span className="text-sm font-medium">Em Preparo</span>
-            </div>
-            <span className="text-3xl font-bold serv-text-primary">8</span>
-          </div>
-          <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
-            <div className="flex items-center gap-2 text-[#22C55E] mb-2">
-              <CheckCircle2 size={18} />
-              <span className="text-sm font-medium">Prontos</span>
-            </div>
-            <span className="text-3xl font-bold serv-text-primary">5</span>
-          </div>
-          <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
-            <div className="flex items-center gap-2 serv-text-secondary mb-2">
-              <CheckSquare size={18} />
-              <span className="text-sm font-medium">Entregues</span>
-            </div>
-            <span className="text-3xl font-bold serv-text-primary">34</span>
-          </div>
+      <header className="mb-8 flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-bold serv-text-primary tracking-tight">Dashboard</h1>
+          {dashboard && <p className="serv-text-secondary mt-1">{formatDashboardDate(dashboard.date)}</p>}
         </div>
+      </header>
 
-        {/* Table */}
-        <div className="serv-bg-surface rounded-xl border serv-border overflow-hidden">
-          <div className="p-5 border-b serv-border">
-            <h2 className="text-lg font-semibold serv-text-primary tracking-tight">Pedidos Recentes</h2>
-          </div>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border">Pedido</th>
-                <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border">Mesa</th>
-                <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border">Status</th>
-                <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border text-right">Horário</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y serv-border">
-              {RECENT_ORDERS.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-4 whitespace-nowrap text-sm font-medium serv-text-primary">{order.id}</td>
-                  <td className="px-5 py-4 whitespace-nowrap text-sm serv-text-secondary">{order.table}</td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${STATUS_COLORS[order.status]}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap text-sm serv-text-secondary text-right">{order.time}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {isLoading ? (
+        <div className="serv-bg-surface rounded-xl border serv-border p-6 text-sm serv-text-secondary">
+          Carregando dados do dashboard...
         </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-sm text-red-700" role="alert">
+          {error}
+        </div>
+      ) : dashboard && (
+        <>
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
+              <div className="flex items-center gap-2 serv-text-secondary mb-2">
+                <ClipboardList size={18} />
+                <span className="text-sm font-medium">Pedidos Hoje</span>
+              </div>
+              <span className="text-3xl font-bold serv-text-primary">{dashboard.ordersToday}</span>
+            </div>
+            <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
+              <div className="flex items-center gap-2 text-[#C9623A] mb-2">
+                <Clock size={18} />
+                <span className="text-sm font-medium">Em Preparo</span>
+              </div>
+              <span className="text-3xl font-bold serv-text-primary">{dashboard.preparingOrders}</span>
+            </div>
+            <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
+              <div className="flex items-center gap-2 text-[#22C55E] mb-2">
+                <CheckCircle2 size={18} />
+                <span className="text-sm font-medium">Prontos</span>
+              </div>
+              <span className="text-3xl font-bold serv-text-primary">{dashboard.readyOrders}</span>
+            </div>
+            <div className="serv-bg-surface p-5 rounded-xl border serv-border flex flex-col">
+              <div className="flex items-center gap-2 serv-text-secondary mb-2">
+                <CheckSquare size={18} />
+                <span className="text-sm font-medium">Entregues</span>
+              </div>
+              <span className="text-3xl font-bold serv-text-primary">{dashboard.deliveredOrders}</span>
+            </div>
+          </div>
+
+          <div className="serv-bg-surface rounded-xl border serv-border overflow-hidden">
+            <div className="p-5 border-b serv-border">
+              <h2 className="text-lg font-semibold serv-text-primary tracking-tight">Pedidos Recentes</h2>
+            </div>
+            {dashboard.recentOrders.length === 0 ? (
+              <div className="p-8 text-center text-sm serv-text-secondary">
+                Nenhum pedido recente encontrado.
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/50">
+                    <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border">Pedido</th>
+                    <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border">Mesa</th>
+                    <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border">Status</th>
+                    <th className="px-5 py-3 text-xs font-medium serv-text-secondary uppercase tracking-wider border-b serv-border text-right">Horário</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y serv-border">
+                  {dashboard.recentOrders.map(order => (
+                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-5 py-4 whitespace-nowrap text-sm font-medium serv-text-primary">
+                        {getOrderDisplayId(order.shortId, order.id)}
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-sm serv-text-secondary">Mesa {order.tableNumber}</td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${STATUS_COLORS[order.status] ?? 'bg-gray-500 text-white'}`}>
+                          {STATUS_LABELS[order.status] ?? order.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-sm serv-text-secondary text-right">
+                        {formatOrderTime(order.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 }

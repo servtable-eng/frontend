@@ -135,7 +135,7 @@ export function DishDetails() {
           name: data.name,
           category: data.category.replaceAll('_', ' '),
           image: data.imageUrl,
-          available: data.available,
+          available: data.available && (data.availableQuantityInGrams ?? 1) > 0,
           recommendedWeightInGrams: normalizePortionWeight(data.recommendedWeightInGrams),
           photoUpdatedAtLabel: formatPhotoUpdatedAt(data.photoUpdatedAt),
           desc: data.description,

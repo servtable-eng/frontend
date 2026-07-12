@@ -7,6 +7,7 @@ export type FoodCategory =
   | string;
 
 export type DishCategory = FoodCategory;
+export type DishStockStatus = "NORMAL" | "LOW" | "OUT_OF_STOCK" | string;
 
 export type ClientDishDto = {
   id: string;
@@ -14,6 +15,10 @@ export type ClientDishDto = {
   description: string;
   imageUrl: string;
   recommendedWeightInGrams: number;
+  available?: boolean;
+  availableQuantityInGrams?: number | null;
+  lowStockThresholdInGrams?: number | null;
+  stockStatus?: DishStockStatus | null;
   category?: string;
 };
 
@@ -25,6 +30,9 @@ export type RestaurantDishDto = {
   buffetPosition: number | string;
   costPerKg: number;
   recommendedWeightInGrams: number;
+  availableQuantityInGrams?: number | null;
+  lowStockThresholdInGrams?: number | null;
+  stockStatus?: DishStockStatus | null;
   available: boolean;
 };
 
@@ -39,6 +47,9 @@ export type DishDto = {
   photoUpdatedAt?: string | null;
   costPerKg: number;
   recommendedWeightInGrams: number;
+  availableQuantityInGrams?: number | null;
+  lowStockThresholdInGrams?: number | null;
+  stockStatus?: DishStockStatus | null;
   buffetPosition: number;
   available: boolean;
 };
@@ -53,5 +64,17 @@ export type DishPayload = {
   imageUrl: string;
   costPerKg: number;
   recommendedWeightInGrams: number;
+  availableQuantityInGrams?: number;
+  lowStockThresholdInGrams?: number;
   available: boolean;
+};
+
+export type DishStockPayload = {
+  available: true;
+  availableQuantityInGrams: number;
+  lowStockThresholdInGrams: number;
+};
+
+export type DishAddStockPayload = {
+  quantityToAddInGrams: number;
 };
