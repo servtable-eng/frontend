@@ -5,6 +5,7 @@ import {
 import { Button, Badge } from '@workspace/ui';
 import '@workspace/ui/styles.css';
 import { DISH_IMAGE_ACCEPT, isAllowedDishImage } from '@/utils/imageUpload';
+import { resolveImageUrl } from '@/utils/resolveImageUrl';
 import '../../styles/tokens.css';
 
 /* ─── Nav ─────────────────────────────────────────────────────────── */
@@ -44,7 +45,7 @@ function ImageCell({ src, alt }: { src: string; alt: string }) {
   }
   return (
     <img
-      src={src} alt={alt} onError={() => setErr(true)}
+      src={resolveImageUrl(src)} alt={alt} onError={() => setErr(true)}
       style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }}
     />
   );
@@ -112,7 +113,7 @@ function UploadPanel({
                 <Images size={32} />
               </div>
             ) : (
-              <img src={dish.image} alt={dish.name} onError={() => setImgErr(true)}
+              <img src={resolveImageUrl(dish.image)} alt={dish.name} onError={() => setImgErr(true)}
                 style={{ width: '100%', aspectRatio: '16/6', objectFit: 'cover', display: 'block' }} />
             )}
             {dish.stale && (
@@ -133,7 +134,7 @@ function UploadPanel({
               A nova foto de <strong>{dish.name}</strong> foi salva com sucesso.
             </p>
             {preview && (
-              <img src={preview} alt="Nova imagem" style={{ width: '100%', aspectRatio: '16/6', objectFit: 'cover', borderRadius: 8, border: '1px solid #86EFAC' }} />
+              <img src={resolveImageUrl(preview)} alt="Nova imagem" style={{ width: '100%', aspectRatio: '16/6', objectFit: 'cover', borderRadius: 8, border: '1px solid #86EFAC' }} />
             )}
             <button
               onClick={resetUpload}
@@ -148,7 +149,7 @@ function UploadPanel({
               Nova imagem
             </p>
             <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '2px solid #C9623A' }}>
-              <img src={preview} alt="Preview" style={{ width: '100%', aspectRatio: '16/6', objectFit: 'cover', display: 'block' }} />
+              <img src={resolveImageUrl(preview)} alt="Preview" style={{ width: '100%', aspectRatio: '16/6', objectFit: 'cover', display: 'block' }} />
               <button
                 onClick={resetUpload}
                 style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}

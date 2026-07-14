@@ -287,7 +287,7 @@ export function CustomerCartPage() {
   };
 
   return (
-    <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
+    <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
       <MobilePageHeader
         title="Carrinho"
         subtitle="Revise seus pedidos"
@@ -364,7 +364,7 @@ export function CustomerCartPage() {
 
               return (
               <section key={plate.id} style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', padding: 14, marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+                <div className="customer-cart-plate-heading" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FDF5F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <ShoppingBag size={17} color="#C9623A" />
                   </div>
@@ -380,7 +380,7 @@ export function CustomerCartPage() {
                     type="button"
                     onClick={() => editPlate(plate.id)}
                     aria-label={`Editar prato ${index + 1}`}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    style={{ width: 44, height: 44, borderRadius: 8, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                   >
                     <Edit3 size={14} color="#6B7280" />
                   </button>
@@ -388,7 +388,7 @@ export function CustomerCartPage() {
                     type="button"
                     onClick={() => removeCartPlate(plate.id)}
                     aria-label={`Remover prato ${index + 1}`}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    style={{ width: 44, height: 44, borderRadius: 8, border: '1.5px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                   >
                     <Trash2 size={14} color="#EF4444" />
                   </button>
@@ -396,7 +396,7 @@ export function CustomerCartPage() {
 
                 <div style={{ display: 'grid', gap: 8 }}>
                   {plate.plateItems.map(item => (
-                    <div key={item.id} style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: '1px solid #F0EDE9' }}>
+                    <div className="customer-cart-item" key={item.id} style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: '1px solid #F0EDE9' }}>
                       <ImgSafe src={item.imageUrl} alt={item.name} style={{ width: 48, height: 48, borderRadius: 10, flexShrink: 0 }} size={18} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>{item.name}</p>
@@ -473,7 +473,7 @@ export function CustomerCartPage() {
             </section>
           </div>
 
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 390, margin: '0 auto', background: '#fff', borderTop: '1px solid #EAE4DF', padding: '12px 16px', boxShadow: '0 -4px 16px rgba(0,0,0,0.06)', zIndex: 20 }}>
+          <div className="customer-bottom-bar" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 720, margin: '0 auto', background: '#fff', borderTop: '1px solid #EAE4DF', padding: '12px 16px', boxShadow: '0 -4px 16px rgba(0,0,0,0.06)', zIndex: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 13, color: '#6B7280' }}>Total</span>
               <span style={{ fontSize: 20, fontWeight: 800, color: '#1F2937' }}>{brl(totals.total)}</span>
@@ -496,9 +496,9 @@ export function CustomerCartPage() {
       )}
 
       {isTableModalOpen && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 40, background: 'rgba(31, 41, 55, 0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
-          <div style={{ width: '100%', maxWidth: 342, background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', padding: 16, boxShadow: '0 18px 50px rgba(31, 41, 55, 0.22)' }}>
-            <h2 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 800, color: '#1F2937' }}>
+        <div className="customer-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(31, 41, 55, 0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="customer-modal" role="dialog" aria-modal="true" aria-labelledby="table-confirmation-title" style={{ width: '100%', maxWidth: 342, background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', padding: 16, boxShadow: '0 18px 50px rgba(31, 41, 55, 0.22)' }}>
+            <h2 id="table-confirmation-title" style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 800, color: '#1F2937' }}>
               Informe sua mesa
             </h2>
             <label style={{ display: 'grid', gap: 6 }}>
@@ -518,7 +518,7 @@ export function CustomerCartPage() {
                 {tableNumberError}
               </p>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+            <div className="customer-modal-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginTop: 16 }}>
               <button
                 type="button"
                 onClick={() => {

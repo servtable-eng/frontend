@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { PLACEHOLDER_IMAGE_URL, resolveImageUrl } from '@/utils/resolveImageUrl';
 
 export function AdminPageHeader({
   title,
@@ -51,23 +51,11 @@ export function AvailabilityToggle({ checked, onChange }: { checked: boolean; on
   );
 }
 
-export function ImageCell({ src, alt }: { src: string; alt: string }) {
+export function ImageCell({ src, alt }: { src?: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
-  if (failed) {
-    return (
-      <div style={{
-        width: 48, height: 48, borderRadius: 10,
-        background: '#F3F4F6', border: '1px solid #EAE4DF',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#D1D5DB',
-      }}>
-        <AlertCircle size={20} />
-      </div>
-    );
-  }
   return (
     <img
-      src={src} alt={alt}
+      src={failed ? PLACEHOLDER_IMAGE_URL : resolveImageUrl(src)} alt={alt}
       onError={() => setFailed(true)}
       style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '1px solid #EAE4DF', display: 'block' }}
     />

@@ -55,7 +55,7 @@ function ProgressIndicator({ status }: { status: OrderStatus }) {
   const activeStep = STATUS_STEP[status] ?? 1;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+    <div className="customer-progress-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
       {PROGRESS_STEPS.map((step, index) => {
         const stepNumber = index + 1;
         const isComplete = stepNumber <= activeStep;
@@ -133,7 +133,7 @@ export function OrderTrackingPage() {
   }, [orderId]);
 
   return (
-    <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
+    <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
       <MobilePageHeader
         title="Acompanhar pedido"
         subtitle={orderId ? `Pedido ${shortOrderId(orderId)}` : 'Pedido'}
@@ -154,7 +154,7 @@ export function OrderTrackingPage() {
       ) : order ? (
         <main style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'grid', gap: 12, alignContent: 'start' }}>
           <Section title="Status">
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+            <div className="customer-order-heading" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
               <div>
                 <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1F2937', lineHeight: 1.2 }}>
                   Pedido {shortOrderId(order.id)}

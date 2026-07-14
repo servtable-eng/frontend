@@ -9,6 +9,7 @@ import '../../styles/tokens.css';
 import { showSuccess } from '@/components/ToastProvider';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
 import { calculateBuffetPrice } from '@/utils/buffetPricing';
+import { resolveImageUrl } from '@/utils/resolveImageUrl';
 
 const MIN_PORTION_WEIGHT = 25;
 const MAX_PORTION_WEIGHT = 1000;
@@ -173,15 +174,15 @@ export function DishDetails() {
   );
 
   return (
-    <div style={{
-      height: '100svh', maxWidth: 390, margin: '0 auto',
+    <div className="customer-page" style={{
+      height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       background: '#F8F6F4', fontFamily: font, position: 'relative',
     }}>
-      <div style={{ position: 'relative', height: 340, flexShrink: 0, overflow: 'hidden' }}>
+      <div className="customer-hero-media" style={{ position: 'relative', height: 'clamp(220px, 44dvh, 340px)', flexShrink: 0, overflow: 'hidden' }}>
         {dish.image ? (
           <img
-            src={dish.image}
+            src={resolveImageUrl(dish.image)}
             alt={dish.name}
             style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
@@ -239,7 +240,7 @@ export function DishDetails() {
         )}
       </div>
 
-      <div style={{
+      <div className="customer-safe-bottom" style={{
         flex: 1, overflowY: 'auto',
         background: '#fff', borderRadius: '20px 20px 0 0',
         marginTop: -20, position: 'relative', zIndex: 10,
@@ -366,7 +367,7 @@ export function DishDetails() {
         padding: '12px 16px', zIndex: 20,
         boxShadow: '0 -4px 16px rgba(0,0,0,0.05)',
       }}>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="customer-dish-actions" style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={() => window.history.back()}
             style={{

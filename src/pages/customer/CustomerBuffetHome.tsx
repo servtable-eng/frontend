@@ -12,6 +12,7 @@ import type { ClientDishDto } from '@/types/dish';
 import { showSuccess } from '@/components/ToastProvider';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
 import { calculateBuffetPrice } from '@/utils/buffetPricing';
+import { resolveImageUrl } from '@/utils/resolveImageUrl';
 
 const font = 'Inter, system-ui, sans-serif';
 const MIN_PORTION_WEIGHT = 25;
@@ -42,7 +43,7 @@ function ImageWithFallback({ src, alt, style }: { src: string; alt: string; styl
       <UtensilsCrossed size={40} />
     </div>
   ) : (
-    <img src={src} alt={alt} onError={() => setErr(true)} style={{ ...style, objectFit: 'cover', display: 'block' }} />
+    <img src={resolveImageUrl(src)} alt={alt} onError={() => setErr(true)} style={{ ...style, objectFit: 'cover', display: 'block' }} />
   );
 }
 
@@ -167,8 +168,8 @@ export function CustomerBuffetHome() {
   const openRecentOrders = () => navigate(ROUTES.CUSTOMER_RECENT_ORDERS);
 
   return (
-    <div style={{
-      minHeight: '100svh', maxWidth: 390, margin: '0 auto',
+    <div className="customer-page" style={{
+      minHeight: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto',
       display: 'flex', flexDirection: 'column', overflowX: 'hidden',
       background: '#F8F6F4', fontFamily: font, position: 'relative',
     }}>
@@ -178,7 +179,7 @@ export function CustomerBuffetHome() {
       `}</style>
 
       <header style={{ background: '#fff', borderBottom: '1px solid #EAE4DF', padding: '14px 16px 12px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="customer-home-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: '#C9623A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <UtensilsCrossed size={18} color="#fff" />
@@ -189,8 +190,8 @@ export function CustomerBuffetHome() {
               </p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <button type="button" onClick={openCart} aria-label="Carrinho" title="Carrinho" style={{ width: 36, height: 36, borderRadius: 10, background: '#F8F6F4', color: cartPlates.length > 0 ? '#C9623A' : '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}>
+          <div className="customer-home-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button type="button" onClick={openCart} aria-label="Carrinho" title="Carrinho" style={{ width: 44, height: 44, borderRadius: 10, background: '#F8F6F4', color: cartPlates.length > 0 ? '#C9623A' : '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}>
               <span style={{ position: 'relative', display: 'flex' }}>
                 <ShoppingCart size={18} color={cartPlates.length > 0 ? '#C9623A' : '#9CA3AF'} />
                 {cartPlates.length > 0 && (
@@ -205,7 +206,7 @@ export function CustomerBuffetHome() {
               onClick={openRecentOrders}
               aria-label="Meus pedidos"
               title="Meus pedidos"
-              style={{ width: 36, height: 36, borderRadius: 10, background: '#F8F6F4', color: '#C9623A', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}
+              style={{ width: 44, height: 44, borderRadius: 10, background: '#F8F6F4', color: '#C9623A', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAE4DF', cursor: 'pointer', padding: 0 }}
             >
               <ReceiptText size={18} />
             </button>
@@ -230,7 +231,7 @@ export function CustomerBuffetHome() {
         </div>
       </header>
 
-      <div className="cbh-scroll" style={{ background: '#fff', borderBottom: '1px solid #EAE4DF', overflowX: 'auto', flexShrink: 0, padding: '10px 0 10px 14px' }}>
+      <div className="cbh-scroll customer-scroll-row" style={{ background: '#fff', borderBottom: '1px solid #EAE4DF', overflowX: 'auto', flexShrink: 0, padding: '10px 0 10px 14px' }}>
         <div style={{ display: 'flex', gap: 8, width: 'max-content', paddingRight: 14 }}>
           {categories.map(cat => {
             const isActive = activeCat === cat.value;
@@ -274,7 +275,7 @@ export function CustomerBuffetHome() {
         </div>
       ) : (
         <div
-          className="cbh-scroll"
+          className="cbh-scroll customer-scroll-row"
           style={{
             flex: '0 0 auto', overflowX: 'auto', overflowY: 'visible',
             display: 'flex', alignItems: 'stretch',
@@ -289,9 +290,10 @@ export function CustomerBuffetHome() {
 
             return (
               <div
+                className="customer-dish-card"
                 key={dish.id}
                 style={{
-                  minWidth: 318, maxWidth: 318,
+                  minWidth: 'min(340px, 86vw)', maxWidth: 'min(340px, 86vw)',
                   height: 'auto',
                   flexShrink: 0,
                   scrollSnapAlign: 'start',
@@ -304,7 +306,7 @@ export function CustomerBuffetHome() {
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                 }}
               >
-                <div style={{ position: 'relative', height: 260, flexShrink: 0, overflow: 'hidden' }}>
+                <div className="customer-card-media" style={{ position: 'relative', height: 'clamp(190px, 34dvh, 260px)', flexShrink: 0, overflow: 'hidden' }}>
                   <ImageWithFallback
                     src={dish.imageUrl}
                     alt={dish.name}
@@ -387,7 +389,7 @@ export function CustomerBuffetHome() {
                           Sugestão do restaurante. Ajuste conforme desejar.
                         </p>
                       )}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div className="customer-stacked-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                         <button
                           type="button"
                           onClick={cancelQuickAdd}
@@ -444,7 +446,7 @@ export function CustomerBuffetHome() {
         </div>
       )}
 
-      <div style={{
+      <div className="customer-safe-bottom customer-bottom-summary" style={{
         position: 'sticky',
         bottom: 0,
         zIndex: 20,

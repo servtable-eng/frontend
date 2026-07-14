@@ -1,15 +1,14 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronLeft, UtensilsCrossed } from 'lucide-react';
+import { PLACEHOLDER_IMAGE_URL, resolveImageUrl } from '@/utils/resolveImageUrl';
 
 export const customerFont = 'Inter, system-ui, sans-serif';
 
 export const brl = (n: number) => `R$ ${n.toFixed(2).replace('.', ',')}`;
 
-export function ImgSafe({ src, alt, style, size = 22 }: { src: string; alt: string; style?: CSSProperties; size?: number }) {
+export function ImgSafe({ src, alt, style }: { src?: string | null; alt: string; style?: CSSProperties; size?: number }) {
   const [err, setErr] = useState(false);
-  return err
-    ? <div style={{ ...style, background: '#F0EDE9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D1C4BB' }}><UtensilsCrossed size={size} /></div>
-    : <img src={src} alt={alt} onError={() => setErr(true)} style={{ ...style, objectFit: 'cover', display: 'block' }} />;
+  return <img src={err ? PLACEHOLDER_IMAGE_URL : resolveImageUrl(src)} alt={alt} onError={() => setErr(true)} style={{ ...style, objectFit: 'cover', display: 'block' }} />;
 }
 
 export function MobilePageHeader({
@@ -25,7 +24,7 @@ export function MobilePageHeader({
 }) {
   return (
     <header style={{ background: '#fff', borderBottom: '1px solid #EAE4DF', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-      <button type="button" onClick={onBack} style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+      <button type="button" onClick={onBack} style={{ width: 44, height: 44, borderRadius: 10, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
         <ChevronLeft size={20} color="#374151" />
       </button>
       <div style={{ flex: 1 }}>

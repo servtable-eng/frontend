@@ -20,6 +20,7 @@ export function RecentOrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<RecentOrderView[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -54,10 +55,11 @@ export function RecentOrdersPage() {
   const removeOrder = (orderId: string) => {
     removeRecentOrder(orderId);
     setOrders(current => current.filter(order => order.stored.orderId !== orderId));
+    setPendingRemovalId(null);
   };
 
   return (
-    <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
+    <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
       <MobilePageHeader
         title="Meus pedidos"
         subtitle="Acompanhe seus pedidos recentes"
@@ -90,7 +92,7 @@ export function RecentOrdersPage() {
                     <ReceiptText size={18} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                    <div className="customer-order-heading" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
                       <div style={{ minWidth: 0 }}>
                         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1F2937', lineHeight: 1.2 }}>
                           Pedido {shortOrderId(stored.orderId)}
@@ -125,7 +127,7 @@ export function RecentOrdersPage() {
                       </p>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 42px', gap: 8, marginTop: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 44px', gap: 8, marginTop: 12 }}>
                       <button
                         type="button"
                         onClick={() => navigate(customerOrderPath(stored.orderId))}
@@ -137,8 +139,8 @@ export function RecentOrdersPage() {
                       <button
                         type="button"
                         aria-label={`Remover pedido ${shortOrderId(stored.orderId)}`}
-                        onClick={() => removeOrder(stored.orderId)}
-                        style={{ width: 42, height: 42, borderRadius: 12, border: '1.5px solid #FEE2E2', background: '#FFF5F5', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        onClick={() => setPendingRemovalId(stored.orderId)}
+                        style={{ width: 44, height: 44, borderRadius: 12, border: '1.5px solid #FEE2E2', background: '#FFF5F5', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -149,6 +151,19 @@ export function RecentOrdersPage() {
             );
           })}
         </main>
+      )}
+
+      {pendingRemovalId && (
+        <div className="customer-modal-overlay" style={{ zIndex: 50, background: 'rgba(31, 41, 55, 0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="customer-modal" role="dialog" aria-modal="true" aria-labelledby="remove-order-title" style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #EAE4DF', boxShadow: '0 18px 50px rgba(31, 41, 55, 0.22)' }}>
+            <h2 id="remove-order-title" style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#1F2937' }}>Remover pedido?</h2>
+            <p style={{ margin: '0 0 16px', fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>Este pedido será removido da lista de pedidos recentes neste dispositivo.</p>
+            <div className="customer-modal-actions">
+              <button type="button" onClick={() => setPendingRemovalId(null)} style={{ padding: 12, borderRadius: 12, border: '1.5px solid #EAE4DF', background: '#fff', color: '#6B7280', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" onClick={() => removeOrder(pendingRemovalId)} style={{ padding: 12, borderRadius: 12, border: 'none', background: '#DC2626', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Remover</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

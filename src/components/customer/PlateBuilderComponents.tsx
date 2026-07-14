@@ -24,18 +24,18 @@ export function PlateDishCard({
 }) {
   return (
     <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #EAE4DF', marginBottom: 12, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px 0' }}>
+      <div className="customer-item-heading" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px 0' }}>
         <ImgSafe src={item.imageUrl} alt={item.name} style={{ width: 68, height: 68, borderRadius: 10, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>{item.name}</p>
           <p style={{ margin: '2px 0 6px', fontSize: 11, color: '#9CA3AF' }}>{item.description}</p>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#C9623A' }}>{brl(price)}</p>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <div className="customer-item-actions" style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button
             type="button"
             onClick={onRemove}
-            style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 44, height: 44, borderRadius: 8, border: '1px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
             <Trash2 size={15} color="#EF4444" />
           </button>
@@ -110,7 +110,7 @@ export function PlateBuilderSummary({ itemCount, totalWeight, pricePer100g, tota
     <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #EAE4DF', padding: '16px', marginBottom: 14, boxShadow: '0 2px 10px rgba(31,41,55,0.04)' }}>
       <p style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800, color: '#1F2937' }}>Meu prato</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+      <div className="customer-summary-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         <div style={{ borderRadius: 12, background: '#F8F6F4', border: '1px solid #EAE4DF', padding: '12px' }}>
           <p style={{ margin: '0 0 5px', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Peso total</p>
           <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#1F2937', lineHeight: 1, letterSpacing: 0 }}>
@@ -148,7 +148,7 @@ export function PlateBuilderSummary({ itemCount, totalWeight, pricePer100g, tota
 
 export function PlateBuilderBottomBar({ totalPrice, confirmed, canContinue, onContinue }: { totalPrice: number; confirmed: boolean; canContinue: boolean; onContinue: () => void }) {
   return (
-    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 390, margin: '0 auto', background: '#fff', borderTop: '1px solid #EAE4DF', padding: '12px 16px', zIndex: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="customer-bottom-bar customer-bottom-summary" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 720, margin: '0 auto', background: '#fff', borderTop: '1px solid #EAE4DF', padding: '12px 16px', zIndex: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
       <div style={{ flex: 1 }}>
         <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF', lineHeight: 1 }}>Total</p>
         <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#1F2937', lineHeight: 1, letterSpacing: '-0.02em' }}>

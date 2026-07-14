@@ -19,13 +19,14 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options;
+  const isFormData = body instanceof FormData;
   const response = await fetch(`${API_URL}${path}`, {
     ...rest,
     headers: {
-      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(body && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...headers,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
   });
 
   const payload = await response.json().catch(() => null);

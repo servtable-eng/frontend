@@ -5,7 +5,7 @@ const font = 'Inter, system-ui, sans-serif';
 
 export function OrderConfirmation() {
   return (
-    <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, background: '#F8F6F4', fontFamily: font, textAlign: 'center', padding: 24 }}>
+    <div className="customer-page" style={{ minHeight: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, background: '#F8F6F4', fontFamily: font, textAlign: 'center', padding: 24 }}>
       <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CheckCircle2 size={32} color="#15803D" />
       </div>

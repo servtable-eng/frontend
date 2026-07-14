@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  ChevronRight, UploadCloud, X, CheckCircle2, ImageOff,
+  ChevronRight, X, CheckCircle2,
 } from 'lucide-react';
 import { Button, Input, Select } from '@workspace/ui';
 import '@workspace/ui/styles.css';
@@ -11,7 +11,7 @@ import { createDish, getDish, updateDish } from '@/services/dishes/dish.service'
 import '@/styles/tokens.css';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { AvailabilityToggle } from '@/components/admin/AdminShared';
-import { DISH_IMAGE_ACCEPT, isAllowedDishImage } from '@/utils/imageUpload';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 const CATEGORIA_OPTS = [
   { value: '',                  label: 'Selecione uma categoria' },
@@ -40,7 +40,6 @@ type FormState = {
   availableQuantityInGrams: string;
   lowStockThresholdInGrams: string;
   disponivel:   boolean;
-  imagemUrl:    string | null;
 };
 
 const INITIAL: FormState = {
@@ -53,7 +52,6 @@ const INITIAL: FormState = {
   availableQuantityInGrams: '',
   lowStockThresholdInGrams: '',
   disponivel:   true,
-  imagemUrl:    null,
 };
 
 function getInitialRecommendedWeight(weight?: number | null) {
@@ -130,8 +128,8 @@ export function CadastroPratoForm() {
   const [saving, setSaving]   = useState(false);
   const [loadingDish, setLoadingDish] = useState(false);
   const [apiError, setApiError] = useState('');
-  const [dragOver, setDragOver] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) => {
     setForm(prev => ({ ...prev, [key]: val }));
@@ -139,17 +137,11 @@ export function CadastroPratoForm() {
     setSaved(false);
   };
 
-  const handleFile = (file: File | null) => {
-    if (!file) return;
-    if (!isAllowedDishImage(file)) return;
-    const reader = new FileReader();
-    reader.onload = e => set('imagemUrl', e.target?.result as string);
-    reader.readAsDataURL(file);
-  };
-
   useEffect(() => {
     if (!dishId) {
       setForm(INITIAL);
+      setImageFile(null);
+      setCurrentImageUrl(null);
       setErrors({});
       setSaved(false);
       setApiError('');
@@ -171,8 +163,9 @@ export function CadastroPratoForm() {
           availableQuantityInGrams: formatGramsInput(dish.availableQuantityInGrams),
           lowStockThresholdInGrams: formatGramsInput(dish.lowStockThresholdInGrams),
           disponivel: dish.available,
-          imagemUrl: dish.imageUrl || null,
         });
+        setCurrentImageUrl(dish.imageUrl || null);
+        setImageFile(null);
         setErrors({});
         setSaved(false);
       })
@@ -226,7 +219,6 @@ export function CadastroPratoForm() {
         description: form.descricao.trim(),
         ingredients: form.ingredientes.split(',').map(item => item.trim()).filter(Boolean),
         category: form.categoria.startsWith('PRATO_PRINCIPAL') ? 'PRATO_PRINCIPAL' : form.categoria,
-        imageUrl: form.imagemUrl ?? '',
         costPerKg: parseCurrency(form.custoPorKg),
         recommendedWeightInGrams: form.recommendedWeightInGrams,
         available: form.disponivel,
@@ -236,9 +228,9 @@ export function CadastroPratoForm() {
       };
 
       if (dishId) {
-        await updateDish(dishId, payload);
+        await updateDish(dishId, payload, imageFile);
       } else {
-        await createDish(restaurantId, payload);
+        await createDish(restaurantId, payload, imageFile);
       }
       setSaved(true);
     } catch {
@@ -253,6 +245,7 @@ export function CadastroPratoForm() {
     setErrors({});
     setSaved(false);
     setApiError('');
+    setImageFile(null);
   };
 
   const card: React.CSSProperties = {
@@ -452,72 +445,12 @@ export function CadastroPratoForm() {
             {/* Right: Image upload */}
             <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1F2937' }}>Imagem do Prato</p>
-              <div style={{ background: '#fff', border: '1px solid #EAE4DF', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-                {/* Preview or drop zone */}
-                {form.imagemUrl ? (
-                  <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #EAE4DF', aspectRatio: '4/3' }}>
-                    <img src={form.imagemUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    <button
-                      onClick={() => set('imagemUrl', null)}
-                      style={{
-                        position: 'absolute', top: 8, right: 8,
-                        background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: '50%',
-                        width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: '#fff',
-                      }}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => fileRef.current?.click()}
-                    onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
-                    style={{
-                      aspectRatio: '4/3', borderRadius: 10,
-                      border: `2px dashed ${dragOver ? '#C9623A' : '#D1C9C2'}`,
-                      background: dragOver ? '#FDF5F2' : '#FAFAF9',
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', justifyContent: 'center',
-                      gap: 10, cursor: 'pointer',
-                      transition: 'border-color 0.2s, background 0.2s',
-                    }}
-                  >
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#F3F0ED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ImageOff size={20} color="#C9623A" />
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#1F2937' }}>Arraste ou clique</p>
-                      <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6B7280' }}>PNG, JPG, WEBP ou GIF · máx. 5 MB</p>
-                    </div>
-                  </div>
-                )}
-
-                <input ref={fileRef} type="file" accept={DISH_IMAGE_ACCEPT} style={{ display: 'none' }} onChange={e => handleFile(e.target.files?.[0] ?? null)} />
-
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  style={{
-                    width: '100%', padding: '9px 0', fontSize: 13, fontWeight: 500,
-                    color: '#374151', background: '#fff', cursor: 'pointer',
-                    border: '1px solid #D1C9C2', borderRadius: 8,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                  }}
-                >
-                  <UploadCloud size={15} />
-                  {form.imagemUrl ? 'Substituir imagem' : 'Selecionar arquivo'}
-                </button>
-
-                <div style={{ padding: '12px 14px', background: '#FFFBF5', border: '1px solid #FDE68A', borderRadius: 8 }}>
-                  <p style={{ margin: 0, fontSize: 12, color: '#92400E', lineHeight: 1.5, fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    Recomendado: proporção 4:3, mínimo 800×600px. A imagem será exibida no app do cliente.
-                  </p>
-                </div>
-              </div>
+              <ImageUpload
+                value={imageFile}
+                currentImageUrl={currentImageUrl}
+                onChange={file => { setImageFile(file); setSaved(false); }}
+                disabled={saving || loadingDish}
+              />
             </div>
           </div>
         </div>

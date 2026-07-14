@@ -13,17 +13,24 @@ export function getDish(dishId: string) {
   return apiRequest<DishDto>(`/dishes/${dishId}`);
 }
 
-export function createDish(restaurantId: string, payload: DishPayload) {
+function createDishFormData(payload: DishPayload, imageFile?: File | null) {
+  const formData = new FormData();
+  formData.append('dish', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  if (imageFile) formData.append('image', imageFile);
+  return formData;
+}
+
+export function createDish(restaurantId: string, payload: DishPayload, imageFile?: File | null) {
   return apiRequest<DishDto>(`/restaurants/${restaurantId}/dishes`, {
     method: "POST",
-    body: payload,
+    body: createDishFormData(payload, imageFile),
   });
 }
 
-export function updateDish(dishId: string, payload: DishPayload) {
+export function updateDish(dishId: string, payload: DishPayload, imageFile?: File | null) {
   return apiRequest<DishDto>(`/dishes/${dishId}`, {
     method: "PUT",
-    body: payload,
+    body: createDishFormData(payload, imageFile),
   });
 }
 

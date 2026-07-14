@@ -13,7 +13,7 @@ function QtyControl({ qty, onInc, onDec, price }: { qty: number; onInc: () => vo
         <button
           type="button"
           onClick={onDec}
-          style={{ width: 30, height: 30, minWidth: 30, borderRadius: 8, border: '1.5px solid #EAE4DF', background: qty > 0 ? '#fff' : '#F8F6F4', cursor: qty > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+          style={{ width: 44, height: 44, minWidth: 44, borderRadius: 8, border: '1.5px solid #EAE4DF', background: qty > 0 ? '#fff' : '#F8F6F4', cursor: qty > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
           <Minus size={13} color={qty > 0 ? '#374151' : '#D1C9C2'} />
         </button>
@@ -23,7 +23,7 @@ function QtyControl({ qty, onInc, onDec, price }: { qty: number; onInc: () => vo
         <button
           type="button"
           onClick={onInc}
-          style={{ width: 30, height: 30, minWidth: 30, borderRadius: 8, border: 'none', background: '#C9623A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+          style={{ width: 44, height: 44, minWidth: 44, borderRadius: 8, border: 'none', background: '#C9623A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
           <Plus size={13} color="#fff" />
         </button>
@@ -84,14 +84,14 @@ export function PlateReviewItemCard({
         <button
           type="button"
           onClick={onEdit}
-          style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          style={{ width: 44, height: 44, borderRadius: 8, border: '1.5px solid #EAE4DF', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
           <Pencil size={13} color="#6B7280" />
         </button>
         <button
           type="button"
           onClick={onRemove}
-          style={{ width: 30, height: 30, borderRadius: 8, border: '1.5px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          style={{ width: 44, height: 44, borderRadius: 8, border: '1.5px solid #FEE2E2', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
           <Trash2 size={13} color="#EF4444" />
         </button>
@@ -153,7 +153,7 @@ export function ExtrasScroller({
       <p style={{ margin: '0 14px 10px', fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         {title}
       </p>
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 14px 4px', scrollbarWidth: 'none' }}>
+      <div className="customer-scroll-row" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 14px 4px', scrollbarWidth: 'none' }}>
         {isLoading && (
           <p style={{ margin: 0, fontSize: 13, color: '#9CA3AF' }}>Carregando extras...</p>
         )}
@@ -194,8 +194,8 @@ export function PlateReviewBottomBar({
   onSubmit: () => void;
 }) {
   return (
-    <div style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 390, margin: '0 auto',
+    <div className="customer-bottom-bar customer-bottom-summary" style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 720, margin: '0 auto',
       background: '#fff', borderTop: '1px solid #EAE4DF', padding: '12px 16px', zIndex: 20,
       boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
     }}>

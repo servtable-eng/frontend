@@ -127,7 +127,7 @@ export function PlateBuilder() {
   const canContinue = plateItems.length > 0 && plateItems.every(item => item.hasConfirmedWeight);
 
   return (
-    <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
+    <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
       <MobilePageHeader
         title="Montar prato"
         subtitle="Personalize seu pedido"
@@ -139,7 +139,7 @@ export function PlateBuilder() {
         )}
       />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 110px' }}>
+      <div className="customer-builder-scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 110px' }}>
         {plateItems.length === 0 && (
           <EmptyState
             title="Prato vazio"
@@ -201,22 +201,23 @@ export function PlateBuilder() {
 
       {editingItem && (
         <div
+          className="customer-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 50,
             background: 'rgba(17, 24, 39, 0.45)',
             display: 'flex',
-            alignItems: 'flex-end',
+            alignItems: 'center',
             justifyContent: 'center',
             padding: 16,
           }}
         >
-          <div style={{ width: '100%', maxWidth: 390, background: '#fff', borderRadius: '18px 18px 0 0', border: '1px solid #EAE4DF', boxShadow: '0 -18px 38px rgba(17, 24, 39, 0.18)', overflow: 'hidden' }}>
+          <div className="customer-modal customer-modal--flush" role="dialog" aria-modal="true" aria-labelledby="edit-plate-item-title" style={{ width: '100%', maxWidth: 420, background: '#fff', borderRadius: 18, border: '1px solid #EAE4DF', boxShadow: '0 18px 38px rgba(17, 24, 39, 0.18)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #EAE4DF', display: 'flex', gap: 12, alignItems: 'center' }}>
               <ImgSafe src={editingItem.imageUrl} alt={editingItem.name} style={{ width: 58, height: 58, borderRadius: 12, flexShrink: 0 }} />
               <div style={{ minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1F2937', lineHeight: 1.2 }}>{editingItem.name}</p>
+                <p id="edit-plate-item-title" style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1F2937', lineHeight: 1.2 }}>{editingItem.name}</p>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9CA3AF' }}>Editar item do prato</p>
               </div>
             </div>
@@ -265,7 +266,7 @@ export function PlateBuilder() {
               </label>
             </div>
 
-            <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #EAE4DF', display: 'flex', gap: 8, alignItems: 'center', background: '#FAFAF9' }}>
+            <div className="customer-modal-actions" style={{ padding: '12px 16px 16px', borderTop: '1px solid #EAE4DF', display: 'flex', gap: 8, alignItems: 'center', background: '#FAFAF9' }}>
               <button
                 type="button"
                 onClick={removeEditingItem}

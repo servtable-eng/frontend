@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import { getConfiguredRestaurantId } from '@/services/api';
 import { getBuffetOrganization, updateBuffetOrganization, type BuffetOrganizationItem } from '@/services/dishes/buffetOrganization.service';
+import { resolveImageUrl } from '@/utils/resolveImageUrl';
 import '@/styles/tokens.css';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { showError, showSuccess } from '@/components/ToastProvider';
@@ -213,7 +214,7 @@ export function OrganizacaoBuffet() {
                         {item.buffetPosition}
                       </div>
 
-                      <img src={item.image} alt={item.name} className="w-10 h-10 rounded shadow-sm object-cover border border-gray-200" />
+                      <img src={resolveImageUrl(item.image)} alt={item.name} className="w-10 h-10 rounded shadow-sm object-cover border border-gray-200" />
 
                       <div className="flex-1">
                         <span className="font-medium text-sm text-gray-800">{item.name}</span>

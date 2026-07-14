@@ -61,7 +61,6 @@ export type DishPayload = {
   description: string;
   ingredients: string[];
   category: DishCategory;
-  imageUrl: string;
   costPerKg: number;
   recommendedWeightInGrams: number;
   availableQuantityInGrams?: number;

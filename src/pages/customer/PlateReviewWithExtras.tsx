@@ -149,7 +149,7 @@ export function PlateReviewWithExtras() {
   };
 
   return (
-    <div style={{ height: '100svh', maxWidth: 390, margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
+    <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
       <MobilePageHeader
         title="Meu prato"
         subtitle="Revise seu pedido"
@@ -161,7 +161,7 @@ export function PlateReviewWithExtras() {
         )}
       />
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 130 }}>
+      <div className="customer-review-scroll" style={{ flex: 1, overflowY: 'auto', paddingBottom: 130 }}>
         <div style={{ padding: '16px 14px 0' }}>
           <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Prato personalizado
