@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -18,6 +19,8 @@ import { AdminOrdersBoardSkeleton, OrderTrackingSkeleton } from '@/components/lo
 import '../../styles/tokens.css';
 
 const OPERATION_STATUSES: OrderStatus[] = ['PENDING', 'RECEIVED', 'PREPARING', 'READY', 'DELIVERED'];
+const ORDERS_POLL_INTERVAL_MS = 10_000;
+const RESTAURANT_ORDERS_QUERY_KEY = 'restaurant-orders';
 
 const STATUS_COLUMNS: { status: OrderStatus; label: string; icon: LucideIcon; border: string; badge: string }[] = [
   { status: 'RECEIVED', label: 'Recebidos', icon: ReceiptText, border: 'border-l-[#F59E0B]', badge: 'bg-amber-50 text-amber-700' },
@@ -100,6 +103,18 @@ function getPreviousActionLabel(status: OrderStatus) {
   if (status === 'DELIVERED') return '← Voltar para Pronto';
   if (status === 'CANCELED') return 'Cancelado';
   return 'Sem status anterior';
+}
+
+function reconcileOrders(data: OrderSummary[]) {
+  const uniqueOrders = new Map<string, OrderSummary>();
+
+  data.forEach(order => {
+    if (OPERATION_STATUSES.includes(order.status)) {
+      uniqueOrders.set(order.id, order);
+    }
+  });
+
+  return Array.from(uniqueOrders.values());
 }
 
 function getPlateItemsCount(order: OrderSummary) {
@@ -410,43 +425,68 @@ function OrderDetailPanel({
 
 export function Orders() {
   const restaurant = useRestaurant();
-  const [orders, setOrders] = useState<OrderSummary[]>([]);
+  const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [updatingStatusOrderId, setUpdatingStatusOrderId] = useState('');
-  const [ordersError, setOrdersError] = useState('');
+  const [detailsError, setDetailsError] = useState('');
+  const knownOrderIdsRef = useRef<Set<string> | null>(null);
+  const ordersQueryKey = [RESTAURANT_ORDERS_QUERY_KEY, restaurant.id] as const;
+
+  const {
+    data: orders = [],
+    dataUpdatedAt,
+    isError: hasOrdersError,
+    isFetching: isFetchingOrders,
+    isPending: isLoadingOrders,
+    isSuccess: hasLoadedOrders,
+    refetch: refetchOrders,
+  } = useQuery({
+    queryKey: ordersQueryKey,
+    queryFn: ({ signal }) => getOrdersForRestaurant(restaurant.id, signal),
+    select: reconcileOrders,
+    enabled: Boolean(restaurant.id),
+    refetchInterval: ORDERS_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
 
   useEffect(() => {
-    if (!restaurant.id) {
-      setOrdersError('Restaurante não encontrado.');
-      setIsLoadingOrders(false);
-      return;
+    setSelectedOrderId(currentId => (
+      currentId && orders.some(order => order.id === currentId)
+        ? currentId
+        : orders[0]?.id ?? ''
+    ));
+  }, [orders]);
+
+  useEffect(() => {
+    knownOrderIdsRef.current = null;
+  }, [restaurant.id]);
+
+  useEffect(() => {
+    if (!hasLoadedOrders) return;
+
+    const knownIds = knownOrderIdsRef.current;
+
+    if (knownIds && orders.some(order => !knownIds.has(order.id))) {
+      showSuccess('Novo pedido recebido.');
     }
 
-    setIsLoadingOrders(true);
-    setOrdersError('');
+    knownOrderIdsRef.current = new Set([
+      ...(knownIds ?? []),
+      ...orders.map(order => order.id),
+    ]);
+  }, [hasLoadedOrders, orders]);
 
-    getOrdersForRestaurant(restaurant.id)
-      .then(data => {
-        const operationOrders = data.filter(order => OPERATION_STATUSES.includes(order.status));
-
-        setOrders(operationOrders);
-        setSelectedOrderId(currentId => (
-          currentId && operationOrders.some(order => order.id === currentId)
-            ? currentId
-            : operationOrders[0]?.id ?? ''
-        ));
-      })
-      .catch(() => {
-        setOrders([]);
-        setSelectedOrderId('');
-        setSelectedOrder(null);
-        setOrdersError('Erro ao carregar pedidos.');
-      })
-      .finally(() => setIsLoadingOrders(false));
-  }, [restaurant.id]);
+  useEffect(() => {
+    setSelectedOrder(currentOrder => {
+      if (!currentOrder) return currentOrder;
+      const refreshedOrder = orders.find(order => order.id === currentOrder.id);
+      return refreshedOrder ? { ...currentOrder, ...refreshedOrder } : currentOrder;
+    });
+  }, [orders]);
 
   useEffect(() => {
     if (!selectedOrderId) {
@@ -455,12 +495,13 @@ export function Orders() {
     }
 
     setIsLoadingDetails(true);
+    setDetailsError('');
 
     getOrder(selectedOrderId)
       .then(setSelectedOrder)
       .catch(() => {
         setSelectedOrder(null);
-        setOrdersError('Erro ao carregar detalhes do pedido.');
+        setDetailsError('Erro ao carregar detalhes do pedido.');
       })
       .finally(() => setIsLoadingDetails(false));
   }, [selectedOrderId]);
@@ -487,11 +528,13 @@ export function Orders() {
     try {
       const updatedOrder = await updateOrderStatus(order.id, status);
 
-      setOrders(currentOrders => currentOrders.map(currentOrder => (
-        currentOrder.id === updatedOrder.id
-          ? { ...currentOrder, ...updatedOrder }
-          : currentOrder
-      )));
+      queryClient.setQueryData<OrderSummary[]>(ordersQueryKey, currentOrders => (
+        currentOrders?.map(currentOrder => (
+          currentOrder.id === updatedOrder.id
+            ? { ...currentOrder, ...updatedOrder }
+            : currentOrder
+        )) ?? []
+      ));
       setSelectedOrder(currentOrder => (
         currentOrder?.id === updatedOrder.id
           ? updatedOrder
@@ -527,18 +570,39 @@ export function Orders() {
           <p className="text-sm serv-text-secondary mt-1">Acompanhe a operação do restaurante.</p>
         </div>
         <div className="text-sm font-medium serv-text-secondary flex items-center gap-2">
-          <Clock size={16} /> Última atualização: agora
+          <Clock size={16} /> {isFetchingOrders && !isLoadingOrders ? 'Atualizando...' : dataUpdatedAt ? 'Atualizado agora' : 'Aguardando atualização'}
         </div>
       </header>
 
-      {ordersError && (
+      {detailsError && (
         <div className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {ordersError}
+          {detailsError}
         </div>
       )}
 
-      {isLoadingOrders ? (
+      {hasOrdersError && orders.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800">
+          Não foi possível atualizar os pedidos.
+        </div>
+      )}
+
+      {!restaurant.id ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          Restaurante não encontrado.
+        </div>
+      ) : isLoadingOrders ? (
         <AdminOrdersBoardSkeleton />
+      ) : hasOrdersError && orders.length === 0 ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
+          <p>Erro ao carregar pedidos.</p>
+          <button
+            type="button"
+            onClick={() => void refetchOrders()}
+            className="mt-3 rounded-lg border border-red-200 bg-white px-4 py-2 font-semibold text-red-700 hover:bg-red-50"
+          >
+            Tentar novamente
+          </button>
+        </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-hidden flex gap-4">
           <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden pb-2">

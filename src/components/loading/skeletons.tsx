@@ -60,7 +60,7 @@ export function ModalSkeleton() {
 }
 
 export function ExtraItemSkeleton() {
-  return <LoadingRegion className="w-40 shrink-0 overflow-hidden rounded-xl border serv-border bg-white"><Skeleton rounded={false} className="h-24 w-full" /><div className="space-y-2 p-3"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-16" /><Skeleton className="h-8 w-full rounded-lg" /></div></LoadingRegion>;
+  return <LoadingRegion className="customer-extra-card customer-extra-skeleton shrink-0 overflow-hidden rounded-xl border serv-border bg-white"><Skeleton rounded={false} className="h-24 w-full" /><div className="space-y-2 p-3"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-16" /><Skeleton className="h-11 w-full rounded-lg" /></div></LoadingRegion>;
 }
 
 export function SearchBarSkeleton() {

@@ -8,8 +8,8 @@ export function createOrder(payload: CreateOrderPayload) {
   });
 }
 
-export function getOrdersForRestaurant(restaurantId: string) {
-  return apiRequest<OrderSummary[]>(`/restaurants/${restaurantId}/orders`);
+export function getOrdersForRestaurant(restaurantId: string, signal?: AbortSignal) {
+  return apiRequest<OrderSummary[]>(`/restaurants/${restaurantId}/orders`, { signal });
 }
 
 export function getOrder(orderId: string) {

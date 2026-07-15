@@ -8,12 +8,14 @@ export type PlateReviewItem = { id: string; name: string; image: string; portion
 
 function QtyControl({ qty, onInc, onDec, price }: { qty: number; onInc: () => void; onDec: () => void; price: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 }}>
-      <span style={{ minWidth: 50, whiteSpace: 'nowrap', fontSize: 13, fontWeight: 700, color: '#C9623A' }}>{brl(price)}</span>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flexShrink: 0 }}>
+    <div className="customer-extra-card-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 }}>
+      <span className="customer-extra-card-price" style={{ minWidth: 50, whiteSpace: 'nowrap', fontSize: 13, fontWeight: 700, color: '#C9623A' }}>{brl(price)}</span>
+      <div className="customer-extra-quantity" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, flexShrink: 0 }}>
         <button
           type="button"
           onClick={onDec}
+          disabled={qty === 0}
+          aria-label="Diminuir quantidade"
           style={{ width: 44, height: 44, minWidth: 44, borderRadius: 8, border: '1.5px solid #EAE4DF', background: qty > 0 ? '#fff' : '#F8F6F4', cursor: qty > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
           <Minus size={13} color={qty > 0 ? '#374151' : '#D1C9C2'} />
@@ -24,6 +26,7 @@ function QtyControl({ qty, onInc, onDec, price }: { qty: number; onInc: () => vo
         <button
           type="button"
           onClick={onInc}
+          aria-label="Aumentar quantidade"
           style={{ width: 44, height: 44, minWidth: 44, borderRadius: 8, border: 'none', background: '#C9623A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
           <Plus size={13} color="#fff" />
@@ -35,15 +38,15 @@ function QtyControl({ qty, onInc, onDec, price }: { qty: number; onInc: () => vo
 
 export function ExtraItemCard({ item, qty, onInc, onDec }: { item: ExtraDto; qty: number; onInc: () => void; onDec: () => void }) {
   return (
-    <div style={{
-      flex: '0 0 170px', width: 170, minWidth: 170, borderRadius: 14,
+    <div className="customer-extra-card" style={{
+      borderRadius: 14,
       border: `1.5px solid ${qty > 0 ? '#C9623A' : '#EAE4DF'}`,
       background: '#fff', padding: 12, boxSizing: 'border-box',
       boxShadow: qty > 0 ? '0 0 0 3px rgba(201,98,58,0.10)' : undefined,
       transition: 'border-color 0.15s, box-shadow 0.15s',
     }}>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-        <ImgSafe src={item.imageUrl} alt={item.name} style={{ width: 46, height: 46, borderRadius: 10 }} size={20} />
+        <ImgSafe src={item.imageUrl} alt={item.name} style={{ width: 64, height: 64, borderRadius: 10 }} size={20} />
       </div>
       <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#1F2937', textAlign: 'center', lineHeight: 1.25, minHeight: 32, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {item.name}
@@ -154,7 +157,7 @@ export function ExtrasScroller({
       <p style={{ margin: '0 14px 10px', fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         {title}
       </p>
-      <div className="customer-scroll-row" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 14px 4px', scrollbarWidth: 'none' }}>
+      <div className="customer-scroll-row customer-extras-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 14px 4px', scrollbarWidth: 'none' }}>
         {isLoading && Array.from({ length: 3 }, (_, index) => <ExtraItemSkeleton key={index} />)}
         {!isLoading && error && <InlineErrorState message={error} />}
         {!isLoading && !error && items.map(e => (
