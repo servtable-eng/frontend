@@ -92,12 +92,12 @@ function WeightGramsInput({
   );
 }
 
-export function GerenciamentoCardapio() {
+export function GerenciamentoCardapio({ initialTab = 'buffet' }: { initialTab?: 'buffet' | 'extras' }) {
   const restaurant = useRestaurant();
   const navigate = useNavigate();
   const [dishes, setDishes] = useState<RestaurantDishDto[]>([]);
   const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'buffet' | 'extras'>('buffet');
+  const [activeTab, setActiveTab] = useState<'buffet' | 'extras'>(initialTab);
   const [extraForm, setExtraForm] = useState<ExtraItemForm>(EMPTY_EXTRA_FORM);
   const [editingExtraId, setEditingExtraId] = useState<string | null>(null);
   const [isExtraFormOpen, setIsExtraFormOpen] = useState(false);

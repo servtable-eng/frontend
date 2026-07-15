@@ -5,7 +5,7 @@ import { ROUTES } from '@/routes/routeConstants';
 const NAV_ITEMS = [
   { icon: Home, label: 'Início', to: ROUTES.ADMIN_DASHBOARD },
   { icon: ClipboardList, label: 'Pedidos', to: ROUTES.ADMIN_ORDERS },
-  { icon: BookOpen, label: 'Cardápio', to: ROUTES.ADMIN_CARDAPIO },
+  { icon: BookOpen, label: 'Cardápio', to: ROUTES.ADMIN_MENU },
   { icon: LayoutList, label: 'Organização do Buffet', to: ROUTES.ADMIN_BUFFET },
   { icon: Settings, label: 'Configurações', to: ROUTES.ADMIN_SETTINGS },
 ];

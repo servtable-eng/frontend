@@ -10,13 +10,18 @@ export const ROUTES = {
   CUSTOMER_ORDER_TRACKING: '/orders/:orderId',
   ADMIN_ROOT: '/admin',
   ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_MENU: '/admin/menu',
+  ADMIN_EXTRAS: '/admin/extras',
+  ADMIN_ORDERS: '/admin/orders',
+  ADMIN_SETTINGS: '/admin/settings',
+  // Legacy routes kept for backwards compatibility.
   ADMIN_CARDAPIO: '/admin/cardapio',
   ADMIN_CARDAPIO_FORM: '/admin/cardapio/form',
   ADMIN_CARDAPIO_EDIT_FORM: '/admin/cardapio/form/:dishId',
-  ADMIN_ORDERS: '/admin/pedidos',
+  ADMIN_ORDERS_LEGACY: '/admin/pedidos',
   ADMIN_IMAGES: '/admin/imagens',
   ADMIN_BUFFET: '/admin/buffet',
-  ADMIN_SETTINGS: '/admin/configuracoes',
+  ADMIN_SETTINGS_LEGACY: '/admin/configuracoes',
 };
 
 export function customerDishPath(id: string) {

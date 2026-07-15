@@ -41,6 +41,12 @@ export function AppRoutes() {
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="menu" element={<GerenciamentoCardapio />} />
+          <Route path="extras" element={<GerenciamentoCardapio initialTab="extras" />} />
+          <Route path="settings" element={<Configuracoes />} />
+
+          {/* Legacy Portuguese URLs remain available for existing links/bookmarks. */}
           <Route path="cardapio" element={<GerenciamentoCardapio />} />
           <Route path="cardapio/form" element={<CadastroPratoForm />} />
           <Route path="cardapio/form/:dishId" element={<CadastroPratoForm />} />
