@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { CheckCircle2, Minus, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { ExtraDto } from '@/types/extra';
 import { brl, customerFont, ImgSafe, InlineErrorState } from './CustomerShared';
+import { ExtraItemSkeleton } from '@/components/loading';
 
 export type PlateReviewItem = { id: string; name: string; image: string; portion: string; note: string };
 
@@ -154,9 +155,7 @@ export function ExtrasScroller({
         {title}
       </p>
       <div className="customer-scroll-row" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 14px 4px', scrollbarWidth: 'none' }}>
-        {isLoading && (
-          <p style={{ margin: 0, fontSize: 13, color: '#9CA3AF' }}>Carregando extras...</p>
-        )}
+        {isLoading && Array.from({ length: 3 }, (_, index) => <ExtraItemSkeleton key={index} />)}
         {!isLoading && error && <InlineErrorState message={error} />}
         {!isLoading && !error && items.map(e => (
           <ExtraItemCard

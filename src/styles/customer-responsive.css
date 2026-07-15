@@ -26,6 +26,14 @@
   overflow-x: hidden !important;
 }
 
+/* Home scrolls in natural document flow. Other customer flows intentionally
+   keep their viewport-sized shells for fixed internal panels and modals. */
+.customer-page.customer-home-page {
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: visible !important;
+}
+
 .customer-app img,
 .customer-app video,
 .customer-app svg {
@@ -86,7 +94,7 @@
 }
 
 .customer-safe-bottom {
-  padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
 }
 
 .customer-dish-card {

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { ExternalLink, ReceiptText, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CountdownTimer } from '@/components/CountdownTimer';
-import { brl, customerFont, EmptyState, LoadingState, MobilePageHeader } from '@/components/customer/CustomerShared';
+import { brl, customerFont, EmptyState, MobilePageHeader } from '@/components/customer/CustomerShared';
+import { OrderCardSkeleton } from '@/components/loading';
 import { ROUTES, customerOrderPath } from '@/routes/routeConstants';
 import { getOrder } from '@/services/orders/order.service';
 import { getRecentOrders, removeRecentOrder, type RecentOrder } from '@/services/orders/recentOrders.storage';
@@ -72,7 +73,9 @@ export function RecentOrdersPage() {
       />
 
       {isLoading ? (
-        <LoadingState message="Carregando pedidos..." />
+        <main style={{ flex: 1, padding: 14, display: 'grid', gap: 12, alignContent: 'start' }}>
+          {Array.from({ length: 3 }, (_, index) => <OrderCardSkeleton key={index} />)}
+        </main>
       ) : orders.length === 0 ? (
         <div style={{ flex: 1, padding: 16 }}>
           <EmptyState

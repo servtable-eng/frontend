@@ -12,6 +12,7 @@ import '@/styles/tokens.css';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { AvailabilityToggle } from '@/components/admin/AdminShared';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { AdminDishFormSkeleton } from '@/components/loading';
 
 const CATEGORIA_OPTS = [
   { value: '',                  label: 'Selecione uma categoria' },
@@ -257,6 +258,16 @@ export function CadastroPratoForm() {
     display: 'flex', flexDirection: 'column', gap: 16,
   };
 
+  if (loadingDish) {
+    return (
+      <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 88 }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '36px 40px' }}>
+          <AdminDishFormSkeleton />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 88, fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -288,12 +299,6 @@ export function CadastroPratoForm() {
               <span style={{ fontSize: 14, fontWeight: 500, color: '#DC2626' }}>{apiError}</span>
             </div>
           )}
-          {loadingDish && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F8F6F4', border: '1px solid #EAE4DF', borderRadius: 10, padding: '12px 16px' }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color: '#6B7280' }}>Carregando prato...</span>
-            </div>
-          )}
-
           {/* Two-column layout */}
           <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
 

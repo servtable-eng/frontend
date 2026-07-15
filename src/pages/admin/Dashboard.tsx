@@ -4,6 +4,7 @@ import { getConfiguredRestaurantId } from '@/services/api';
 import { getRestaurantDashboard } from '@/services/restaurants/dashboard.service';
 import type { RestaurantDashboard } from '@/types/dashboard';
 import type { OrderStatus } from '@/types/order';
+import { DashboardMetricSkeleton, RestaurantTableSkeleton } from '@/components/loading';
 import '../../styles/tokens.css';
 
 const restaurantId = getConfiguredRestaurantId();
@@ -105,8 +106,11 @@ export function Dashboard() {
       </header>
 
       {isLoading ? (
-        <div className="serv-bg-surface rounded-xl border serv-border p-6 text-sm serv-text-secondary">
-          Carregando dados do dashboard...
+        <div role="status" aria-label="Carregando dashboard">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+            {Array.from({ length: 4 }, (_, index) => <DashboardMetricSkeleton key={index} />)}
+          </div>
+          <RestaurantTableSkeleton />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-sm text-red-700" role="alert">

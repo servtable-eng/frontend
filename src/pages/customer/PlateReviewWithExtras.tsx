@@ -16,13 +16,14 @@ import type { CustomerPlateItem } from '@/contexts/CustomerPlateContext';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
 import { calculatePlateBuffetSubtotal } from '@/utils/buffetPricing';
 import '../../styles/tokens.css';
+import { CartSkeleton } from '@/components/loading';
 
 type PlateItem = PlateReviewItem & { dishId: string; portionWeightInGrams: number };
 
 export function PlateReviewWithExtras() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pricePer100g } = useRestaurantPricePer100g();
+  const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
   const { addPlateToCart, cartPlates, updateCartPlate } = useCustomerCart();
   const { plateItems, removePlateItem, loadPlate } = useCustomerPlate();
   const reviewState = location.state as PlateReviewState | null;
@@ -147,6 +148,10 @@ export function PlateReviewWithExtras() {
       setIsSending(false);
     }
   };
+
+  if (isLoadingPricePer100g) {
+    return <CartSkeleton />;
+  }
 
   return (
     <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>

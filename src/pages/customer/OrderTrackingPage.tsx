@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CountdownTimer } from '@/components/CountdownTimer';
-import { brl, customerFont, EmptyState, LoadingState, MobilePageHeader } from '@/components/customer/CustomerShared';
+import { brl, customerFont, EmptyState, MobilePageHeader } from '@/components/customer/CustomerShared';
+import { OrderTrackingSkeleton } from '@/components/loading';
 import { ROUTES } from '@/routes/routeConstants';
 import { getOrder } from '@/services/orders/order.service';
 import type { OrderDetails, OrderStatus } from '@/types/order';
@@ -83,8 +84,21 @@ export function OrderTrackingPage() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshWarning, setRefreshWarning] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
+  const orderRef = useRef<OrderDetails | null>(null);
+  const loadedOrderIdRef = useRef('');
 
   useEffect(() => {
+    if (loadedOrderIdRef.current !== orderId) {
+      loadedOrderIdRef.current = orderId ?? '';
+      orderRef.current = null;
+      setOrder(null);
+      setIsLoading(true);
+      setError('');
+      setRefreshWarning('');
+    }
+
     if (!orderId) {
       setError('Pedido nao encontrado.');
       setIsLoading(false);
@@ -92,15 +106,20 @@ export function OrderTrackingPage() {
     }
 
     let isMounted = true;
+    let isRequestInFlight = false;
     let intervalId: ReturnType<typeof window.setInterval> | undefined;
 
     const loadOrder = async () => {
+      if (isRequestInFlight) return orderRef.current?.status;
+      isRequestInFlight = true;
       try {
         const nextOrder = await getOrder(orderId);
         if (!isMounted) return undefined;
 
+        orderRef.current = nextOrder;
         setOrder(nextOrder);
         setError('');
+        setRefreshWarning('');
         setIsLoading(false);
 
         if (isTerminalStatus(nextOrder.status) && intervalId) {
@@ -110,9 +129,15 @@ export function OrderTrackingPage() {
         return nextOrder.status;
       } catch {
         if (!isMounted) return undefined;
-        setError('Nao foi possivel carregar o pedido. Tente novamente em instantes.');
+        if (orderRef.current) {
+          setRefreshWarning('Não foi possível atualizar o pedido. Tentaremos novamente em instantes.');
+        } else {
+          setError('Nao foi possivel carregar o pedido. Tente novamente em instantes.');
+        }
         setIsLoading(false);
         return undefined;
+      } finally {
+        isRequestInFlight = false;
       }
     };
 
@@ -130,7 +155,7 @@ export function OrderTrackingPage() {
       isMounted = false;
       if (intervalId) window.clearInterval(intervalId);
     };
-  }, [orderId]);
+  }, [orderId, retryKey]);
 
   return (
     <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>
@@ -146,13 +171,14 @@ export function OrderTrackingPage() {
       />
 
       {isLoading ? (
-        <LoadingState message="Carregando pedido..." />
+        <OrderTrackingSkeleton />
       ) : error ? (
         <div style={{ flex: 1, padding: 16 }}>
-          <EmptyState title="Nao encontramos o pedido" message={error} actionLabel="Meus pedidos" onAction={() => navigate(ROUTES.CUSTOMER_RECENT_ORDERS)} />
+          <EmptyState title="Nao encontramos o pedido" message={error} actionLabel="Tentar novamente" onAction={() => { setError(''); setIsLoading(true); setRetryKey(key => key + 1); }} />
         </div>
       ) : order ? (
         <main style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'grid', gap: 12, alignContent: 'start' }}>
+          {refreshWarning && <div role="status" style={{ padding: '9px 12px', borderRadius: 10, background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', fontSize: 12 }}>{refreshWarning}</div>}
           <Section title="Status">
             <div className="customer-order-heading" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
               <div>

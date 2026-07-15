@@ -7,6 +7,7 @@ import {
   getRestaurantSettings,
   updateRestaurantPricePer100g,
 } from '@/services/restaurants/restaurantSettings.service';
+import { AdminSettingsSkeleton } from '@/components/loading';
 
 const brl = (value: number) => value.toLocaleString('pt-BR', {
   style: 'currency',
@@ -116,6 +117,9 @@ export function Configuracoes() {
       />
 
       <section style={{ marginTop: 24, maxWidth: 720 }}>
+        {isLoading ? (
+          <AdminSettingsSkeleton />
+        ) : (
         <div style={{ background: '#fff', border: '1px solid #EAE4DF', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '20px 22px', borderBottom: '1px solid #EAE4DF' }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1F2937', letterSpacing: '-0.01em' }}>
@@ -212,6 +216,7 @@ export function Configuracoes() {
             </div>
           </div>
         </div>
+        )}
       </section>
     </main>
   );

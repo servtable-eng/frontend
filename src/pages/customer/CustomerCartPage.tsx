@@ -14,6 +14,7 @@ import type { PlateReviewState } from '@/types/order';
 import { ExtrasScroller } from '@/components/customer/PlateReviewComponents';
 import { brl, customerFont, EmptyState, ImgSafe, MobilePageHeader } from '@/components/customer/CustomerShared';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
+import { CartSkeleton } from '@/components/loading';
 import { calculatePlateBuffetSubtotal } from '@/utils/buffetPricing';
 import '../../styles/tokens.css';
 
@@ -83,7 +84,7 @@ function getCustomerValidationErrors(customerInfo: CustomerInfo) {
 export function CustomerCartPage() {
   const navigate = useNavigate();
   const restaurant = useRestaurant();
-  const { pricePer100g } = useRestaurantPricePer100g();
+  const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
   const {
     cartPlates,
     extraQuantities,
@@ -285,6 +286,10 @@ export function CustomerCartPage() {
       setIsSending(false);
     }
   };
+
+  if (isLoadingPricePer100g) {
+    return <CartSkeleton />;
+  }
 
   return (
     <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>

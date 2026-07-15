@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Camera, Plus, CheckCircle2 } from 'lucide-react';
 import { useCustomerPlate } from '@/contexts/CustomerPlateContext';
@@ -10,6 +10,7 @@ import { showSuccess } from '@/components/ToastProvider';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
 import { calculateBuffetPrice } from '@/utils/buffetPricing';
 import { resolveImageUrl } from '@/utils/resolveImageUrl';
+import { DishDetailsSkeleton } from '@/components/loading';
 
 const MIN_PORTION_WEIGHT = 25;
 const MAX_PORTION_WEIGHT = 1000;
@@ -78,7 +79,7 @@ function formatPhotoUpdatedAt(value?: string | null) {
 export function DishDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { pricePer100g } = useRestaurantPricePer100g();
+  const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
   const { addDishPortion, plateItems } = useCustomerPlate();
   const { cartPlates } = useCustomerCart();
   const [dish, setDish] = useState<DetailDish>(EMPTY_DISH);
@@ -86,6 +87,9 @@ export function DishDetails() {
   const [canShowRecommendedWeightHint, setCanShowRecommendedWeightHint] = useState(false);
   const [observation, setObservation] = useState('');
   const [added, setAdded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const loadedDishIdRef = useRef('');
+  const requestSequenceRef = useRef(0);
 
   const getInitialPortionWeight = (dishId: string, recommendedWeightInGrams: number) => {
     const latestCartPlateItem = [...cartPlates]
@@ -125,10 +129,18 @@ export function DishDetails() {
   };
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+
+    const requestSequence = ++requestSequenceRef.current;
+    const isInitialRequest = loadedDishIdRef.current !== id;
+    if (isInitialRequest) setIsLoading(true);
 
     getDish(id)
       .then(data => {
+        if (requestSequence !== requestSequenceRef.current) return;
         const initialWeight = getInitialPortionWeight(data.id, data.recommendedWeightInGrams);
 
         setDish({
@@ -146,11 +158,21 @@ export function DishDetails() {
         setCanShowRecommendedWeightHint(initialWeight.isRestaurantRecommendation);
         setObservation('');
         setAdded(false);
+        loadedDishIdRef.current = data.id;
       })
       .catch(() => {
+        if (requestSequence !== requestSequenceRef.current) return;
+        if (!isInitialRequest) return;
         setDish(EMPTY_DISH);
         setCanShowRecommendedWeightHint(false);
+      })
+      .finally(() => {
+        if (requestSequence === requestSequenceRef.current) setIsLoading(false);
       });
+
+    return () => {
+      if (requestSequence === requestSequenceRef.current) requestSequenceRef.current += 1;
+    };
   }, [id, cartPlates, plateItems]);
 
   const handleAdd = () => {
@@ -172,6 +194,10 @@ export function DishDetails() {
   const shouldShowRecommendedWeightHint = (
     canShowRecommendedWeightHint
   );
+
+  if (isLoading || isLoadingPricePer100g) {
+    return <DishDetailsSkeleton />;
+  }
 
   return (
     <div className="customer-page" style={{

@@ -6,6 +6,7 @@ import { resolveImageUrl } from '@/utils/resolveImageUrl';
 import '@/styles/tokens.css';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { showError, showSuccess } from '@/components/ToastProvider';
+import { InventoryTableSkeleton } from '@/components/loading';
 
 const restaurantId = getConfiguredRestaurantId();
 
@@ -188,9 +189,7 @@ export function OrganizacaoBuffet() {
 
           <div className="space-y-6">
             {isLoading ? (
-              <div className="bg-white rounded-xl shadow-sm border serv-border p-6 text-sm serv-text-secondary">
-                Carregando organização do buffet...
-              </div>
+              <InventoryTableSkeleton />
             ) : groups.map(group => (
               <div key={group.id} className="bg-white rounded-xl shadow-sm border serv-border overflow-hidden">
                 <div className={`px-4 py-3 border-b border-gray-100 flex items-center gap-2 ${group.color.split(' ')[0]} bg-opacity-20`}>

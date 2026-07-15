@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@workspace/ui/styles.css';
 import { addDishStock, deleteDish, disableDish, enableDish, getDishesForRestaurant } from '@/services/dishes/dish.service';
@@ -21,6 +21,7 @@ import { BuffetDishesTab } from '@/components/admin/BuffetDishesTab';
 import { ExtraItemFormModal, type ExtraItemForm } from './cardapio/ExtraItemFormModal';
 import { ExtraItemsTab } from './cardapio/ExtraItemsTab';
 import { ROUTES, adminDishFormPath } from '@/routes/routeConstants';
+import { AdminMenuSkeleton } from '@/components/loading';
 
 const ITEMS_PER_PAGE = 10;
 const EMPTY_EXTRA_FORM: ExtraItemForm = {
@@ -118,28 +119,44 @@ export function GerenciamentoCardapio() {
   const [deleteExtraItemId, setDeleteExtraItemId] = useState<string | null>(null);
   const [isDeletingExtraItem, setIsDeletingExtraItem] = useState(false);
   const [deleteExtraItemError, setDeleteExtraItemError] = useState('');
+  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
+  const [isLoadingExtras, setIsLoadingExtras] = useState(true);
+  const hasLoadedExtrasRef = useRef(false);
 
   const loadExtraItems = () => {
-    if (!restaurant.id) return Promise.resolve();
+    if (!restaurant.id) {
+      setIsLoadingExtras(false);
+      return Promise.resolve();
+    }
 
+    if (!hasLoadedExtrasRef.current) {
+      setIsLoadingExtras(true);
+    }
     setExtraError('');
     return getExtraItemsForRestaurant(restaurant.id)
       .then(data => setExtraItems(data.map(toExtraItem)))
       .catch(() => {
         setExtraError(EXTRA_ITEM_ERROR_MESSAGE);
         showError(EXTRA_ITEM_ERROR_MESSAGE);
+      })
+      .finally(() => {
+        hasLoadedExtrasRef.current = true;
+        setIsLoadingExtras(false);
       });
   };
 
   useEffect(() => {
     if (!restaurant.id) {
       setError('Restaurante não configurado.');
+      setIsLoadingDishes(false);
       return;
     }
 
+    setIsLoadingDishes(true);
     getDishesForRestaurant(restaurant.id)
       .then(data => setDishes(data))
-      .catch(() => setError('Não foi possível carregar o cardápio.'));
+      .catch(() => setError('Não foi possível carregar o cardápio.'))
+      .finally(() => setIsLoadingDishes(false));
   }, [restaurant.id]);
 
   useEffect(() => {
@@ -469,7 +486,11 @@ export function GerenciamentoCardapio() {
           })}
         </div>
 
-        {activeTab === 'buffet' ? (
+        {activeTab === 'buffet' && isLoadingDishes ? (
+          <AdminMenuSkeleton rows={8} columns={8} />
+        ) : activeTab === 'extras' && isLoadingExtras ? (
+          <AdminMenuSkeleton rows={6} columns={6} />
+        ) : activeTab === 'buffet' ? (
           <BuffetDishesTab
             dishes={dishes}
             currentPageItems={currentPageItems}

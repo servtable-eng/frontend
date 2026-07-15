@@ -14,6 +14,7 @@ import { ROUTES } from '@/routes/routeConstants';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
 import { calculateBuffetPrice, calculatePlateBuffetSubtotal } from '@/utils/buffetPricing';
 import '../../styles/tokens.css';
+import { PlateBuilderSkeleton } from '@/components/loading';
 
 function calculatePlateWeight(items: ReturnType<typeof useCustomerPlate>['plateItems']) {
   return items.reduce(
@@ -25,7 +26,7 @@ function calculatePlateWeight(items: ReturnType<typeof useCustomerPlate>['plateI
 export function PlateBuilder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { pricePer100g } = useRestaurantPricePer100g();
+  const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
   const builderState = location.state as (Pick<PlateReviewState, 'cartPlateId' | 'extraQuantities'> & { editItemId?: string }) | null;
   const {
     plateItems,
@@ -125,6 +126,10 @@ export function PlateBuilder() {
   const totalPrice = calculatePlateBuffetSubtotal(plateItems, pricePer100g);
   const editingItem = plateItems.find(item => item.id === editingDishId) ?? null;
   const canContinue = plateItems.length > 0 && plateItems.every(item => item.hasConfirmedWeight);
+
+  if (isLoadingPricePer100g) {
+    return <div className="customer-page min-h-dvh bg-[#F8F6F4] p-4"><PlateBuilderSkeleton /></div>;
+  }
 
   return (
     <div className="customer-page" style={{ height: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', background: '#F8F6F4', fontFamily: customerFont, overflow: 'hidden' }}>

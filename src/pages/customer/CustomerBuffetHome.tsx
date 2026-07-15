@@ -13,6 +13,7 @@ import { showSuccess } from '@/components/ToastProvider';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
 import { calculateBuffetPrice } from '@/utils/buffetPricing';
 import { resolveImageUrl } from '@/utils/resolveImageUrl';
+import { CategoryFilterSkeleton, CustomerHomeSkeleton, DishCardSkeleton } from '@/components/loading';
 
 const font = 'Inter, system-ui, sans-serif';
 const MIN_PORTION_WEIGHT = 25;
@@ -49,11 +50,12 @@ function ImageWithFallback({ src, alt, style }: { src: string; alt: string; styl
 
 export function CustomerBuffetHome() {
   const restaurant = useRestaurant();
-  const { pricePer100g } = useRestaurantPricePer100g();
+  const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
   const navigate = useNavigate();
   const { plateItems, totalQuantity, addDishPortion } = useCustomerPlate();
   const { cartPlates } = useCustomerCart();
   const [dishes, setDishes] = useState<ClientDishDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeCat, setActiveCat] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +67,7 @@ export function CustomerBuffetHome() {
   useEffect(() => {
     if (!restaurant.id) {
       setError('Restaurante nao encontrado.');
+      setIsLoading(false);
       return;
     }
 
@@ -72,7 +75,8 @@ export function CustomerBuffetHome() {
       .then(data => setDishes(data.filter(dish => (
         dish.available !== false && (dish.availableQuantityInGrams ?? 1) > 0
       ))))
-      .catch(() => setError('Houve um erro ao carregar os pratos.'));
+      .catch(() => setError('Houve um erro ao carregar os pratos.'))
+      .finally(() => setIsLoading(false));
   }, [restaurant.id]);
 
   useEffect(() => {
@@ -167,9 +171,13 @@ export function CustomerBuffetHome() {
   const openCart = () => navigate(ROUTES.CUSTOMER_CART);
   const openRecentOrders = () => navigate(ROUTES.CUSTOMER_RECENT_ORDERS);
 
+  if (isLoading || isLoadingPricePer100g) {
+    return <CustomerHomeSkeleton />;
+  }
+
   return (
-    <div className="customer-page" style={{
-      minHeight: '100dvh', maxWidth: 720, width: '100%', margin: '0 auto',
+    <div className="customer-page customer-home-page" style={{
+      maxWidth: 720, width: '100%', margin: '0 auto',
       display: 'flex', flexDirection: 'column', overflowX: 'hidden',
       background: '#F8F6F4', fontFamily: font, position: 'relative',
     }}>
@@ -233,7 +241,7 @@ export function CustomerBuffetHome() {
 
       <div className="cbh-scroll customer-scroll-row" style={{ background: '#fff', borderBottom: '1px solid #EAE4DF', overflowX: 'auto', flexShrink: 0, padding: '10px 0 10px 14px' }}>
         <div style={{ display: 'flex', gap: 8, width: 'max-content', paddingRight: 14 }}>
-          {categories.map(cat => {
+          {isLoading || isLoadingPricePer100g ? <CategoryFilterSkeleton /> : categories.map(cat => {
             const isActive = activeCat === cat.value;
             return (
               <button
@@ -267,7 +275,11 @@ export function CustomerBuffetHome() {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {isLoading || isLoadingPricePer100g ? (
+        <div className="customer-scroll-row" style={{ display: 'flex', gap: 12, padding: '0 16px 16px', overflow: 'hidden' }}>
+          {Array.from({ length: 3 }, (_, index) => <div key={index} style={{ minWidth: 'min(340px, 86vw)' }}><DishCardSkeleton /></div>)}
+        </div>
+      ) : filtered.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 }}>
           <div style={{ fontSize: 40 }}>🍽️</div>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#6B7280', textAlign: 'center' }}>Nenhum prato encontrado</p>

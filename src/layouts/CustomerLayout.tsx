@@ -10,7 +10,7 @@ export function CustomerLayout() {
     <RestaurantProvider>
       <CustomerCartProvider>
         <CustomerPlateProvider>
-          <div className="customer-app serv-theme serv-bg-background min-h-screen text-slate-900">
+          <div className="customer-app serv-theme serv-bg-background text-slate-900">
             <Outlet />
           </div>
           <ToastProvider />

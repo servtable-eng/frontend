@@ -14,6 +14,7 @@ import { showError, showSuccess } from '@/components/ToastProvider';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { getOrder, getOrdersForRestaurant, updateOrderStatus } from '@/services/orders/order.service';
 import type { OrderDetails, OrderStatus, OrderSummary } from '@/types/order';
+import { AdminOrdersBoardSkeleton, OrderTrackingSkeleton } from '@/components/loading';
 import '../../styles/tokens.css';
 
 const OPERATION_STATUSES: OrderStatus[] = ['PENDING', 'RECEIVED', 'PREPARING', 'READY', 'DELIVERED'];
@@ -246,8 +247,8 @@ function OrderDetailPanel({
 }) {
   if (isLoading) {
     return (
-      <aside className="w-[360px] shrink-0 serv-bg-surface border serv-border rounded-xl p-6 flex items-center justify-center text-center">
-        <p className="text-sm serv-text-secondary">Carregando detalhes...</p>
+      <aside className="w-[360px] shrink-0 serv-bg-surface border serv-border rounded-xl overflow-hidden">
+        <OrderTrackingSkeleton />
       </aside>
     );
   }
@@ -537,9 +538,7 @@ export function Orders() {
       )}
 
       {isLoadingOrders ? (
-        <div className="flex-1 rounded-xl border serv-border serv-bg-surface flex items-center justify-center">
-          <p className="text-sm serv-text-secondary">Carregando pedidos...</p>
-        </div>
+        <AdminOrdersBoardSkeleton />
       ) : (
         <div className="flex-1 min-h-0 overflow-hidden flex gap-4">
           <div className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden pb-2">
