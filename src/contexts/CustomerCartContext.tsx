@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { CustomerPlateItem } from '@/contexts/CustomerPlateContext';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import {
@@ -99,12 +99,12 @@ export function CustomerCartProvider({ children }: { children: ReactNode }) {
     setCartPlates(prev => prev.filter(cartPlate => cartPlate.id !== plateId));
   };
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     skipNextSaveRef.current = true;
     setCartPlates([]);
     setExtraQuantities({});
     clearCartStorage(restaurant.id);
-  };
+  }, [restaurant.id]);
 
   const value = useMemo<CustomerCartContextValue>(() => ({
     cartPlates,
@@ -115,7 +115,7 @@ export function CustomerCartProvider({ children }: { children: ReactNode }) {
     updateCartPlate,
     removeCartPlate,
     clearCart,
-  }), [cartPlates, extraQuantities, restaurant.id]);
+  }), [cartPlates, extraQuantities, clearCart]);
 
   return (
     <CustomerCartContext.Provider value={value}>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { ClientDishDto } from '@/types/dish';
 
 const MIN_PORTION_WEIGHT = 25;
@@ -117,7 +117,7 @@ export function CustomerPlateProvider({ children }: { children: ReactNode }) {
     })));
   };
 
-  const clearPlate = () => setPlateItems([]);
+  const clearPlate = useCallback(() => setPlateItems([]), []);
 
   const value = useMemo<CustomerPlateContextValue>(() => ({
     plateItems,

@@ -11,3 +11,13 @@ export function updateRestaurantPricePer100g(restaurantId: string, pricePer100g:
     body: { pricePer100g },
   });
 }
+
+export function updateDefaultOrderEstimateMinutes(
+  restaurantId: string,
+  defaultOrderEstimateMinutes: number,
+) {
+  return apiRequest<RestaurantSettings>(`/restaurants/${restaurantId}/settings/order-estimate`, {
+    method: 'PATCH',
+    body: { defaultOrderEstimateMinutes },
+  });
+}

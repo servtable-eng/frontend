@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Edit3, ShoppingBag, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showError, showSuccess } from '@/components/ToastProvider';
@@ -9,11 +9,13 @@ import { ROUTES, customerOrderPath } from '@/routes/routeConstants';
 import { getExtrasForRestaurant } from '@/services/extras/extra.service';
 import { createOrder } from '@/services/orders/order.service';
 import { addRecentOrder, getRecentOrders } from '@/services/orders/recentOrders.storage';
+import { submitCurrentOrder, type OrderSubmissionGuard } from '@/services/orders/submitCurrentOrder';
 import type { ExtraDto } from '@/types/extra';
 import type { PlateReviewState } from '@/types/order';
 import { ExtrasScroller } from '@/components/customer/PlateReviewComponents';
 import { brl, customerFont, EmptyState, ImgSafe, MobilePageHeader } from '@/components/customer/CustomerShared';
 import { useRestaurantPricePer100g } from '@/hooks/useRestaurantPricePer100g';
+import { useClearCurrentOrder } from '@/hooks/useClearCurrentOrder';
 import { CartSkeleton } from '@/components/loading';
 import { calculatePlateBuffetSubtotal } from '@/utils/buffetPricing';
 import '../../styles/tokens.css';
@@ -90,7 +92,6 @@ export function CustomerCartPage() {
     extraQuantities,
     setExtraQuantities,
     removeCartPlate,
-    clearCart,
   } = useCustomerCart();
   const { loadPlate } = useCustomerPlate();
   const [extras, setExtras] = useState<ExtraDto[]>([]);
@@ -104,6 +105,8 @@ export function CustomerCartPage() {
   const [tableNumberError, setTableNumberError] = useState('');
   const [submitMessage, setSubmitMessage] = useState('');
   const [hasRecentOrders, setHasRecentOrders] = useState(() => getRecentOrders().length > 0);
+  const clearCurrentOrder = useClearCurrentOrder();
+  const submissionGuardRef = useRef<OrderSubmissionGuard>({ pending: false, successHandled: false });
 
   useEffect(() => {
     saveCustomerInfo(customerInfo);
@@ -220,7 +223,7 @@ export function CustomerCartPage() {
   };
 
   const confirmOrder = async () => {
-    if (isSending) {
+    if (submissionGuardRef.current.pending) {
       return;
     }
 
@@ -245,41 +248,50 @@ export function CustomerCartPage() {
     };
 
     try {
-      const createdOrder = await createOrder({
-        restaurantId: restaurant.id,
-        customerName: preparedCustomerData.customerName,
-        tableNumber: preparedCustomerData.tableNumber,
-        customerPhone: preparedCustomerData.customerPhone,
-        plateItems: cartPlates.flatMap(plate => (
-          plate.plateItems.flatMap(item => (
-            Array.from({ length: item.quantity }, () => ({
-              dishId: item.dishId,
-              portionWeightInGrams: item.portionWeightInGrams,
-              observation: item.observation ?? '',
-            }))
-          ))
-        )),
-        extraItems: selectedExtraItems
-          .map(([extraItemId, quantity]) => ({
+      const createdOrder = await submitCurrentOrder({
+        guard: submissionGuardRef.current,
+        create: () => createOrder({
+          restaurantId: restaurant.id,
+          customerName: preparedCustomerData.customerName,
+          tableNumber: preparedCustomerData.tableNumber,
+          customerPhone: preparedCustomerData.customerPhone,
+          plateItems: cartPlates.flatMap(plate => (
+            plate.plateItems.flatMap(item => (
+              Array.from({ length: item.quantity }, () => ({
+                dishId: item.dishId,
+                portionWeightInGrams: item.portionWeightInGrams,
+                observation: item.observation ?? '',
+              }))
+            ))
+          )),
+          extraItems: selectedExtraItems.map(([extraItemId, quantity]) => ({
             extraItemId,
             quantity,
           })),
+        }),
+        saveRecentOrder: order => {
+          addRecentOrder({
+            orderId: order.id,
+            customerName: preparedCustomerData.customerName,
+            tableNumber: String(preparedCustomerData.tableNumber),
+            createdAt: new Date().toISOString(),
+          });
+        },
+        clearCurrentOrder,
       });
 
-      addRecentOrder({
-        orderId: createdOrder.id,
-        customerName: preparedCustomerData.customerName,
-        tableNumber: String(preparedCustomerData.tableNumber),
-        createdAt: new Date().toISOString(),
-      });
+      if (!createdOrder) {
+        return;
+      }
       setHasRecentOrders(true);
       setIsTableModalOpen(false);
       setTableNumber('');
-      clearCart();
+      setTableNumberError('');
+      setSubmitMessage('');
       showSuccess('Pedido enviado com sucesso.');
-      navigate(customerOrderPath(createdOrder.id));
+      navigate(customerOrderPath(createdOrder.id), { replace: true });
     } catch {
-      const errorMessage = 'Nao foi possivel enviar seu pedido. Tente novamente em instantes.';
+      const errorMessage = 'Não foi possível enviar seu pedido. Tente novamente em instantes.';
       setTableNumberError(errorMessage);
       showError(errorMessage);
     } finally {

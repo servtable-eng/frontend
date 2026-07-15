@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Clock3, Save } from 'lucide-react';
 import { showError, showSuccess } from '@/components/ToastProvider';
 import { AdminPageHeader } from '@/components/admin/AdminShared';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import {
   getRestaurantSettings,
+  updateDefaultOrderEstimateMinutes,
   updateRestaurantPricePer100g,
 } from '@/services/restaurants/restaurantSettings.service';
 import { AdminSettingsSkeleton } from '@/components/loading';
@@ -48,6 +49,24 @@ function formatInputValue(value: number) {
   });
 }
 
+function validateOrderEstimate(value: string) {
+  if (!value.trim()) return 'Informe o prazo estimado.';
+
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes)) return 'Informe o prazo em minutos inteiros.';
+  if (minutes < 5) return 'O prazo mínimo é de 5 minutos.';
+  if (minutes > 240) return 'O prazo máximo é de 240 minutos.';
+  return '';
+}
+
+function formatOrderEstimate(minutes: number) {
+  if (minutes < 60) return `${minutes} minutos`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}min`;
+}
+
 export function Configuracoes() {
   const restaurant = useRestaurant();
   const [priceInput, setPriceInput] = useState('');
@@ -56,6 +75,11 @@ export function Configuracoes() {
   const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [estimateInput, setEstimateInput] = useState('');
+  const [savedEstimate, setSavedEstimate] = useState<number | null>(null);
+  const [estimateValidationError, setEstimateValidationError] = useState('');
+  const [isSavingEstimate, setIsSavingEstimate] = useState(false);
+  const estimateRequestPendingRef = useRef(false);
 
   useEffect(() => {
     if (!restaurant.id) {
@@ -70,6 +94,8 @@ export function Configuracoes() {
       .then(settings => {
         setSavedPrice(settings.pricePer100g);
         setPriceInput(formatInputValue(settings.pricePer100g));
+        setSavedEstimate(settings.defaultOrderEstimateMinutes);
+        setEstimateInput(String(settings.defaultOrderEstimateMinutes));
       })
       .catch(() => {
         setLoadError('Não foi possível carregar as configurações do restaurante.');
@@ -108,6 +134,37 @@ export function Configuracoes() {
 
   const parsedPrice = parseBrazilianCurrency(priceInput);
   const formattedPreview = parsedPrice !== null && parsedPrice > 0 ? brl(parsedPrice) : '';
+  const parsedEstimate = Number(estimateInput);
+  const estimatePreview = Number.isInteger(parsedEstimate) && parsedEstimate >= 5 && parsedEstimate <= 240
+    ? formatOrderEstimate(parsedEstimate)
+    : savedEstimate !== null ? formatOrderEstimate(savedEstimate) : '20 minutos';
+
+  const saveOrderEstimate = async () => {
+    if (estimateRequestPendingRef.current) return;
+
+    const error = validateOrderEstimate(estimateInput);
+    setEstimateValidationError(error);
+    if (error || !restaurant.id) return;
+
+    const defaultOrderEstimateMinutes = Number(estimateInput);
+    estimateRequestPendingRef.current = true;
+    setIsSavingEstimate(true);
+
+    try {
+      const settings = await updateDefaultOrderEstimateMinutes(
+        restaurant.id,
+        defaultOrderEstimateMinutes,
+      );
+      setSavedEstimate(settings.defaultOrderEstimateMinutes);
+      setEstimateInput(String(settings.defaultOrderEstimateMinutes));
+      showSuccess('Prazo estimado atualizado com sucesso.');
+    } catch {
+      showError('Não foi possível atualizar o prazo estimado.');
+    } finally {
+      estimateRequestPendingRef.current = false;
+      setIsSavingEstimate(false);
+    }
+  };
 
   return (
     <main className="flex-1 p-8 overflow-y-auto">
@@ -116,10 +173,11 @@ export function Configuracoes() {
         subtitle="Ajuste as regras de atendimento do restaurante."
       />
 
-      <section style={{ marginTop: 24, maxWidth: 720 }}>
+      <section style={{ marginTop: 24, maxWidth: 720, display: 'grid', gap: 18 }}>
         {isLoading ? (
           <AdminSettingsSkeleton />
         ) : (
+        <>
         <div style={{ background: '#fff', border: '1px solid #EAE4DF', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '20px 22px', borderBottom: '1px solid #EAE4DF' }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1F2937', letterSpacing: '-0.01em' }}>
@@ -216,6 +274,97 @@ export function Configuracoes() {
             </div>
           </div>
         </div>
+        <div style={{ background: '#fff', border: '1px solid #EAE4DF', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '20px 22px', borderBottom: '1px solid #EAE4DF' }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1F2937', letterSpacing: '-0.01em' }}>
+              Prazo estimado dos pedidos
+            </h2>
+            <p style={{ margin: '6px 0 0', fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>
+              Defina o prazo padrão informado ao cliente para a preparação e entrega dos novos pedidos.
+            </p>
+          </div>
+
+          <div style={{ padding: 22, display: 'grid', gap: 14 }}>
+            <label style={{ display: 'grid', gap: 7, width: '100%', maxWidth: 320 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                Prazo em minutos
+              </span>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type="number"
+                  min={5}
+                  max={240}
+                  step={5}
+                  required
+                  value={estimateInput}
+                  onChange={event => {
+                    setEstimateInput(event.target.value);
+                    setEstimateValidationError('');
+                  }}
+                  disabled={isSavingEstimate}
+                  aria-invalid={Boolean(estimateValidationError)}
+                  aria-describedby="order-estimate-help"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '11px 76px 11px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${estimateValidationError ? '#EF4444' : '#D1D5DB'}`,
+                    background: isSavingEstimate ? '#F9FAFB' : '#fff',
+                    color: '#1F2937',
+                    fontSize: 14,
+                    outline: 'none',
+                  }}
+                />
+                <span aria-hidden="true" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#6B7280', fontSize: 13, pointerEvents: 'none' }}>
+                  minutos
+                </span>
+              </div>
+            </label>
+
+            {estimateValidationError && (
+              <p style={{ margin: 0, fontSize: 13, color: '#DC2626' }}>{estimateValidationError}</p>
+            )}
+
+            <div id="order-estimate-help" style={{ display: 'grid', gap: 6 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#6B7280', lineHeight: 1.5, overflowWrap: 'anywhere' }}>
+                Novos pedidos terão prazo estimado de <strong style={{ color: '#1F2937' }}>{estimatePreview}</strong>.
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: '#9CA3AF', lineHeight: 1.5 }}>
+                A alteração será aplicada apenas aos novos pedidos.
+              </p>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={saveOrderEstimate}
+                disabled={isSavingEstimate}
+                style={{
+                  minHeight: 42,
+                  width: '100%',
+                  maxWidth: 180,
+                  padding: '0 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: isSavingEstimate ? '#B8A59A' : '#C9623A',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: isSavingEstimate ? 'default' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <Clock3 size={16} />
+                {isSavingEstimate ? 'Salvando...' : 'Salvar prazo'}
+              </button>
+            </div>
+          </div>
+        </div>
+        </>
         )}
       </section>
     </main>
