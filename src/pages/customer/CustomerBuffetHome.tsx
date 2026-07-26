@@ -52,8 +52,8 @@ export function CustomerBuffetHome() {
   const restaurant = useRestaurant();
   const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
   const navigate = useNavigate();
-  const { plateItems, totalQuantity, addDishPortion } = useCustomerPlate();
-  const { cartPlates } = useCustomerCart();
+  const { plateItems, totalQuantity } = useCustomerPlate();
+  const { cartPlates, requestAddPlateItem } = useCustomerCart();
   const [dishes, setDishes] = useState<ClientDishDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -158,9 +158,11 @@ export function CustomerBuffetHome() {
   };
 
   const confirmQuickAdd = (dish: ClientDishDto) => {
-    addDishPortion(dish, getQuickAddWeight(dish));
+    const result = requestAddPlateItem(dish, getQuickAddWeight(dish));
     setExpandedDishId('');
-    showSuccess(`${dish.name} adicionada ao prato.`);
+    if (result.status === 'added') {
+      showSuccess(`${dish.name} adicionada ao prato.`);
+    }
   };
 
   const openPlateBuilder = () => {

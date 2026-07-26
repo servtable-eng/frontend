@@ -12,7 +12,7 @@ const NAV_ITEMS = [
 
 export function Navbar() {
   return (
-    <aside style={{ width: 240, background: '#fff', borderRight: '1px solid #EAE4DF', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, flexShrink: 0 }}>
+    <aside style={{ width: 280, height: '100dvh', flexShrink: 0, overflowY: 'auto', background: '#fff', borderRight: '1px solid #EAE4DF', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: '#C9623A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <UtensilsCrossed size={18} color="#fff" />

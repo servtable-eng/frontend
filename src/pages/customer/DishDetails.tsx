@@ -80,8 +80,8 @@ export function DishDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { pricePer100g, isLoadingPricePer100g } = useRestaurantPricePer100g();
-  const { addDishPortion, plateItems } = useCustomerPlate();
-  const { cartPlates } = useCustomerCart();
+  const { plateItems } = useCustomerPlate();
+  const { cartPlates, requestAddPlateItem } = useCustomerCart();
   const [dish, setDish] = useState<DetailDish>(EMPTY_DISH);
   const [portionWeightInGrams, setPortionWeightInGrams] = useState(EMPTY_DISH.recommendedWeightInGrams);
   const [canShowRecommendedWeightHint, setCanShowRecommendedWeightHint] = useState(false);
@@ -178,7 +178,7 @@ export function DishDetails() {
   const handleAdd = () => {
     if (!dish.available || !dish.id) return;
 
-    addDishPortion({
+    const result = requestAddPlateItem({
       id: dish.id,
       name: dish.name,
       description: dish.desc,
@@ -186,6 +186,8 @@ export function DishDetails() {
       recommendedWeightInGrams: dish.recommendedWeightInGrams,
       category: dish.category,
     }, portionWeightInGrams, observation);
+    if (result.status === 'conflict') return;
+
     setAdded(true);
     showSuccess(`${dish.name} adicionada ao prato.`);
     setTimeout(() => navigate(ROUTES.CUSTOMER_PLATE_BUILDER), 350);

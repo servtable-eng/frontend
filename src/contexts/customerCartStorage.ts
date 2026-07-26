@@ -53,6 +53,19 @@ function normalizeCartPlate(cartPlate: CustomerCartPlate): CustomerCartPlate {
   };
 }
 
+export function removeDuplicateDishItems(cartPlates: CustomerCartPlate[]) {
+  const seenDishIds = new Set<string>();
+
+  return cartPlates.map(cartPlate => ({
+    ...cartPlate,
+    plateItems: cartPlate.plateItems.filter(item => {
+      if (seenDishIds.has(item.dishId)) return false;
+      seenDishIds.add(item.dishId);
+      return true;
+    }),
+  }));
+}
+
 const isValidCart = (value: unknown): value is PersistedCustomerCart => {
   if (!isRecord(value)) return false;
 
@@ -83,10 +96,12 @@ export function loadCartFromStorage(restaurantId: string): PersistedCustomerCart
     const parsed = JSON.parse(rawCart) as unknown;
 
     if (isValidCart(parsed)) {
-      return {
+      const normalizedCart = {
         ...parsed,
-        cartPlates: parsed.cartPlates.map(normalizeCartPlate),
+        cartPlates: removeDuplicateDishItems(parsed.cartPlates.map(normalizeCartPlate)),
       };
+      window.localStorage.setItem(key, JSON.stringify(normalizedCart));
+      return normalizedCart;
     }
   } catch {
     // Corrupted storage is cleared below so the cart can recover safely.

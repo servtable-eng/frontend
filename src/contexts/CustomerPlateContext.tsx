@@ -1,16 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { ClientDishDto } from '@/types/dish';
-
-const MIN_PORTION_WEIGHT = 25;
-const MAX_PORTION_WEIGHT = 1000;
-const PORTION_WEIGHT_STEP = 25;
-
-function normalizePortionWeight(value: unknown) {
-  const numericValue = typeof value === 'number' && Number.isFinite(value) ? value : 250;
-  const clampedValue = Math.min(MAX_PORTION_WEIGHT, Math.max(MIN_PORTION_WEIGHT, numericValue));
-
-  return Math.round(clampedValue / PORTION_WEIGHT_STEP) * PORTION_WEIGHT_STEP;
-}
+import { createPlateItem, ensurePlateItemId, normalizePortionWeight } from './customerPlateItems';
 
 export type CustomerPlateItem = {
   id: string;
@@ -27,7 +17,8 @@ export type CustomerPlateItem = {
 type CustomerPlateContextValue = {
   plateItems: CustomerPlateItem[];
   totalQuantity: number;
-  addDishPortion: (dish: ClientDishDto, portionWeightInGrams: number, observation?: string) => void;
+  addPlateItem: (item: CustomerPlateItem) => void;
+  replacePlateItemByDishId: (dishId: string, item: CustomerPlateItem) => void;
   setDishQuantity: (dish: ClientDishDto, quantity: number) => void;
   updateDishQuantity: (dish: ClientDishDto, delta: number) => void;
   updatePlateItem: (dishId: string, updates: Partial<Pick<CustomerPlateItem, 'portionWeightInGrams' | 'hasConfirmedWeight' | 'observation'>>) => void;
@@ -38,52 +29,35 @@ type CustomerPlateContextValue = {
 
 const CustomerPlateContext = createContext<CustomerPlateContextValue | null>(null);
 
-const createPlateItemId = () => `plate-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-function createPlateItem(dish: ClientDishDto, portionWeightInGrams: number, observation = ''): CustomerPlateItem {
-  return {
-    id: createPlateItemId(),
-    dishId: dish.id,
-    name: dish.name,
-    description: dish.description,
-    imageUrl: dish.imageUrl,
-    portionWeightInGrams: normalizePortionWeight(portionWeightInGrams),
-    hasConfirmedWeight: true,
-    observation,
-    quantity: 1,
-  };
-}
-
 export function CustomerPlateProvider({ children }: { children: ReactNode }) {
   const [plateItems, setPlateItems] = useState<CustomerPlateItem[]>([]);
 
-  const addDishPortion = (dish: ClientDishDto, portionWeightInGrams: number, observation = '') => {
-    setPlateItems(prev => [...prev, createPlateItem(dish, portionWeightInGrams, observation)]);
+  const addPlateItem = (item: CustomerPlateItem) => {
+    setPlateItems(prev => [...prev, item]);
+  };
+
+  const replacePlateItemByDishId = (dishId: string, item: CustomerPlateItem) => {
+    setPlateItems(prev => prev.map(current => current.dishId === dishId ? item : current));
   };
 
   const setDishQuantity = (dish: ClientDishDto, quantity: number) => {
     setPlateItems(prev => {
       const nextQuantity = Math.max(0, quantity);
-      const currentItems = prev.filter(item => item.dishId === dish.id);
+      const currentItem = prev.find(item => item.dishId === dish.id);
       const otherItems = prev.filter(item => item.dishId !== dish.id);
 
       if (nextQuantity === 0) {
         return otherItems;
       }
 
-      const existingItems = currentItems.slice(0, nextQuantity);
-      const missingItems = Array.from(
-        { length: Math.max(0, nextQuantity - existingItems.length) },
-        () => createPlateItem(dish, dish.recommendedWeightInGrams),
-      );
-
-      return [...otherItems, ...existingItems, ...missingItems];
+      return [...otherItems, currentItem ?? createPlateItem(dish, dish.recommendedWeightInGrams)];
     });
   };
 
   const updateDishQuantity = (dish: ClientDishDto, delta: number) => {
     setPlateItems(prev => {
       if (delta > 0) {
+        if (prev.some(item => item.dishId === dish.id)) return prev;
         return [...prev, createPlateItem(dish, dish.recommendedWeightInGrams)];
       }
 
@@ -108,28 +82,36 @@ export function CustomerPlateProvider({ children }: { children: ReactNode }) {
   };
 
   const loadPlate = (items: CustomerPlateItem[]) => {
-    setPlateItems(items.map(item => ({
-      ...item,
-      id: item.id ?? createPlateItemId(),
-      quantity: item.quantity ?? 1,
-      hasConfirmedWeight: item.hasConfirmedWeight ?? true,
-      portionWeightInGrams: normalizePortionWeight(item.portionWeightInGrams),
-    })));
+    const seenDishIds = new Set<string>();
+    setPlateItems(items
+      .filter(item => {
+        if (seenDishIds.has(item.dishId)) return false;
+        seenDishIds.add(item.dishId);
+        return true;
+      })
+      .map(item => ({
+        ...item,
+        id: ensurePlateItemId(item),
+        quantity: 1,
+        hasConfirmedWeight: item.hasConfirmedWeight ?? true,
+        portionWeightInGrams: normalizePortionWeight(item.portionWeightInGrams),
+      })));
   };
 
   const clearPlate = useCallback(() => setPlateItems([]), []);
 
-  const value = useMemo<CustomerPlateContextValue>(() => ({
+  const value: CustomerPlateContextValue = {
     plateItems,
     totalQuantity: plateItems.reduce((total, item) => total + item.quantity, 0),
-    addDishPortion,
+    addPlateItem,
+    replacePlateItemByDishId,
     setDishQuantity,
     updateDishQuantity,
     updatePlateItem,
     loadPlate,
     removePlateItem,
     clearPlate,
-  }), [plateItems]);
+  };
 
   return (
     <CustomerPlateContext.Provider value={value}>

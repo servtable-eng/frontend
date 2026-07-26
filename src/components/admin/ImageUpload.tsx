@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImageOff, UploadCloud, X } from 'lucide-react';
-import { DISH_IMAGE_ACCEPT, MAX_DISH_IMAGE_SIZE, validateDishImage } from '@/utils/imageUpload';
+import { DISH_IMAGE_ACCEPT, validateDishImage } from '@/utils/imageUpload';
 import { resolveImageUrl } from '@/utils/resolveImageUrl';
 
 type ImageUploadProps = {
@@ -74,7 +74,7 @@ export function ImageUpload({ value, currentImageUrl, onChange, disabled = false
           </div>
           <div style={{ textAlign: 'center' }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#1F2937' }}>Arraste ou clique</p>
-            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6B7280' }}>JPG, JPEG, PNG, WEBP ou GIF · máx. 5 MB</p>
+            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6B7280' }}>JPG, PNG e WEBP até 5 MB · GIF até 10 MB</p>
           </div>
         </div>
       )}
@@ -86,7 +86,7 @@ export function ImageUpload({ value, currentImageUrl, onChange, disabled = false
       </button>
       {error && <p role="alert" style={{ margin: 0, fontSize: 12, color: '#DC2626' }}>{error}</p>}
       <div style={{ padding: '12px 14px', background: '#FFFBF5', border: '1px solid #FDE68A', borderRadius: 8 }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>Formatos aceitos: JPG, JPEG, PNG, WEBP e GIF. Tamanho máximo: {MAX_DISH_IMAGE_SIZE / 1024 / 1024} MB.</p>
+        <p style={{ margin: 0, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>Formatos aceitos: JPG, JPEG, PNG, WEBP e GIF. Limite de 5 MB para imagens estáticas e 10 MB para GIF.</p>
       </div>
     </div>
   );

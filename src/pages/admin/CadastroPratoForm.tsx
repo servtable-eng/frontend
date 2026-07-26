@@ -6,7 +6,7 @@ import {
 import { Button, Input, Select } from '@workspace/ui';
 import '@workspace/ui/styles.css';
 import { ROUTES } from '@/routes/routeConstants';
-import { getConfiguredRestaurantId } from '@/services/api';
+import { getApiErrorMessage, getConfiguredRestaurantId } from '@/services/api';
 import { createDish, getDish, updateDish } from '@/services/dishes/dish.service';
 import '@/styles/tokens.css';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -231,11 +231,11 @@ export function CadastroPratoForm() {
       if (dishId) {
         await updateDish(dishId, payload, imageFile);
       } else {
-        await createDish(restaurantId, payload, imageFile);
+        await createDish(restaurantId, payload);
       }
       setSaved(true);
-    } catch {
-      setApiError('Não foi possí­vel salvar o prato.');
+    } catch (error) {
+      setApiError(getApiErrorMessage(error, 'Não foi possível salvar o prato.'));
     } finally {
       setSaving(false);
     }
@@ -260,7 +260,7 @@ export function CadastroPratoForm() {
 
   if (loadingDish) {
     return (
-      <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 88 }}>
+      <main style={{ minHeight: '100%' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '36px 40px' }}>
           <AdminDishFormSkeleton />
         </div>
@@ -269,8 +269,8 @@ export function CadastroPratoForm() {
   }
 
   return (
-    <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 88, fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <main data-testid="dish-form-page" style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div data-testid="dish-form-content" style={{ width: '100%', maxWidth: 1000, margin: '0 auto', padding: '36px 40px', display: 'flex', flex: 1, flexDirection: 'column', gap: 24 }}>
 
           {/* Breadcrumb + Header */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -421,6 +421,7 @@ export function CadastroPratoForm() {
                       <div>
                         <FieldLabel required={form.disponivel}>Alerta de estoque baixo</FieldLabel>
                         <Input
+                          id="low-stock-threshold"
                           placeholder="Ex: 750"
                           value={form.lowStockThresholdInGrams}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => set('lowStockThresholdInGrams', sanitizeGramsInput(e.target.value))}
@@ -429,7 +430,6 @@ export function CadastroPratoForm() {
                         <p style={{ margin: '5px 0 0', fontSize: 12, color: '#6B7280', fontFamily: 'Inter, system-ui, sans-serif' }}>
                           Quando o estoque chegar nesse valor, o prato será destacado como baixo.
                         </p>
-                        <FieldError msg={errors.lowStockThresholdInGrams} />
                       </div>
                     </div>
                   </div>
@@ -460,20 +460,20 @@ export function CadastroPratoForm() {
           </div>
         </div>
 
-        {/* Sticky footer */}
-        <div style={{
-          position: 'fixed', bottom: 0, left: 240, right: 0,
+        {/* Form actions */}
+        <div data-testid="dish-form-actions" style={{
+          width: '100%', marginTop: 'auto', flexShrink: 0,
           background: '#fff', borderTop: '1px solid #EAE4DF',
           padding: '14px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          zIndex: 20,
+          flexWrap: 'wrap', gap: 12,
         }}>
           <p style={{ margin: 0, fontSize: 13, color: '#6B7280', fontFamily: 'Inter, system-ui, sans-serif' }}>
             {Object.keys(errors).length > 0
               ? `${Object.keys(errors).length} campo${Object.keys(errors).length > 1 ? 's' : ''} obrigatório${Object.keys(errors).length > 1 ? 's' : ''} não preenchido${Object.keys(errors).length > 1 ? 's' : ''}.`
               : 'Preencha os campos e salve o prato.'}
           </p>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <Button variant="secondary" size="md" onClick={handleCancel}>Cancelar</Button>
             <PrimaryButton
               text={saving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Salvar prato'}

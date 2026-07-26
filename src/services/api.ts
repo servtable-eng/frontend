@@ -13,23 +13,48 @@ export class ApiError extends Error {
   }
 }
 
+export function getApiErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof ApiError) || !error.data || typeof error.data !== "object") {
+    return fallback;
+  }
+
+  const data = error.data as Record<string, unknown>;
+  return typeof data.message === "string" && data.message.trim()
+    ? data.message
+    : fallback;
+}
+
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, headers, ...rest } = options;
-  const isFormData = body instanceof FormData;
+  const { body, headers: providedHeaders, ...requestOptions } = options;
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const requestHeaders = new Headers(providedHeaders);
+
+  if (isFormData) {
+    requestHeaders.delete("Content-Type");
+  } else if (body !== undefined && body !== null && !requestHeaders.has("Content-Type")) {
+    requestHeaders.set("Content-Type", "application/json");
+  }
+
+  const requestBody = body === undefined || body === null
+    ? undefined
+    : isFormData
+      ? body
+      : JSON.stringify(body);
+
   const response = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers: {
-      ...(body && !isFormData ? { "Content-Type": "application/json" } : {}),
-      ...headers,
-    },
-    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+    ...requestOptions,
+    headers: requestHeaders,
+    body: requestBody,
   });
 
-  const payload = await response.json().catch(() => null);
+  const contentType = response.headers.get("content-type");
+  const payload = contentType?.includes("application/json")
+    ? await response.json().catch(() => null)
+    : await response.text().catch(() => null);
 
   if (!response.ok) {
     throw new ApiError(response.status, payload ?? { message: response.statusText });

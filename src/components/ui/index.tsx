@@ -56,16 +56,23 @@ interface InputProps extends React.ComponentPropsWithoutRef<"input"> {
 }
 
 function Input({ className, error, ...props }: InputProps) {
+  const generatedId = React.useId()
+  const inputId = props.id ?? generatedId
+  const errorId = `${inputId}-error`
+
   return (
     <label className={cn("flex flex-col gap-1", className)}>
       <input
+        id={inputId}
+        aria-invalid={error ? true : props["aria-invalid"]}
+        aria-describedby={error ? errorId : props["aria-describedby"]}
         className={cn(
           "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}
       />
-      {error ? <span className="text-xs text-destructive">{error}</span> : null}
+      {error ? <span id={errorId} className="text-xs text-destructive">{error}</span> : null}
     </label>
   )
 }

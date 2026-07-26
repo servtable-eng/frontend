@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '@workspace/ui';
 import '@workspace/ui/styles.css';
-import { DISH_IMAGE_ACCEPT, isAllowedDishImage } from '@/utils/imageUpload';
+import { DISH_IMAGE_ACCEPT, validateImageFile } from '@/utils/imageUpload';
 import { resolveImageUrl } from '@/utils/resolveImageUrl';
 import '../../styles/tokens.css';
 
@@ -64,9 +64,17 @@ function UploadPanel({
   const [phase, setPhase] = useState<UploadPhase>('idle');
   const [preview, setPreview] = useState<string | null>(null);
   const [imgErr, setImgErr]   = useState(false);
+  const [fileError, setFileError] = useState('');
 
   const handleFile = (file: File | null) => {
-    if (!file || !isAllowedDishImage(file)) return;
+    if (!file) return;
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setFileError(validation.message);
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    setFileError('');
     const reader = new FileReader();
     reader.onload = e => {
       setPreview(e.target?.result as string);
@@ -76,7 +84,7 @@ function UploadPanel({
   };
 
   const confirmUpload = () => setPhase('confirmed');
-  const resetUpload   = () => { setPhase('idle'); setPreview(null); };
+  const resetUpload   = () => { setPhase('idle'); setPreview(null); setFileError(''); };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: font }}>
@@ -205,11 +213,12 @@ function UploadPanel({
                   <div>
                     <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1F2937' }}>Arraste a imagem aqui</p>
                     <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B7280' }}>ou clique para selecionar um arquivo</p>
-                    <p style={{ margin: '8px 0 0', fontSize: 12, color: '#9CA3AF' }}>PNG, JPG, WEBP ou GIF · máx. 5 MB</p>
+                    <p style={{ margin: '8px 0 0', fontSize: 12, color: '#9CA3AF' }}>PNG, JPG e WEBP até 5 MB · GIF até 10 MB</p>
                   </div>
                 )}
               </div>
               <input ref={fileRef} type="file" accept={DISH_IMAGE_ACCEPT} style={{ display: 'none' }} onChange={e => handleFile(e.target.files?.[0] ?? null)} />
+              {fileError && <p role="alert" style={{ margin: '8px 0 0', fontSize: 12, color: '#DC2626' }}>{fileError}</p>}
             </div>
 
             {/* Tip */}

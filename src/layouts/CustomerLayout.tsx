@@ -8,14 +8,14 @@ import '@/styles/customer-responsive.css';
 export function CustomerLayout() {
   return (
     <RestaurantProvider>
-      <CustomerCartProvider>
-        <CustomerPlateProvider>
+      <CustomerPlateProvider>
+        <CustomerCartProvider>
           <div className="customer-app serv-theme serv-bg-background text-slate-900">
             <Outlet />
           </div>
           <ToastProvider />
-        </CustomerPlateProvider>
-      </CustomerCartProvider>
+        </CustomerCartProvider>
+      </CustomerPlateProvider>
     </RestaurantProvider>
   );
 }
